@@ -1,5 +1,6 @@
 import { Env } from './types/env';
 import { webhookHandler } from './handlers/webhook';
+import { apiHandler } from './handlers/api';
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -7,6 +8,10 @@ export default {
 
         if (url.pathname === '/webhook') {
             return webhookHandler(request, env, ctx);
+        }
+
+        if (url.pathname.startsWith('/api/')) {
+            return apiHandler(request, env);
         }
 
         return new Response('LINE Audio Summarizer Backend');

@@ -44,9 +44,11 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                         await replyMessage(replyToken, summary, env.LINE_CHANNEL_ACCESS_TOKEN);
 
                     } else if (event.type === 'message' && event.message.type === 'text') {
-                        // Echo text for debug (disabled)
-                        // const text = event.message.text;
-                        // await replyMessage(event.replyToken, `Echo: ${text}`, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        const text = event.message.text.trim();
+                        if (text === '/id') {
+                            const userId = event.source.userId;
+                            await replyMessage(event.replyToken, `Your LINE User ID is:\n${userId}\n\nPlease enter this ID in your Obsidian settings.`, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        }
                     }
                 } catch (err: any) {
                     console.error('Error processing event:', err);
