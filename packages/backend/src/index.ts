@@ -6,7 +6,7 @@ export default {
         const url = new URL(request.url);
 
         if (url.pathname === '/webhook') {
-            return webhookHandler(request, env);
+            return webhookHandler(request, env, ctx);
         }
 
         return new Response('LINE Audio Summarizer Backend');
