@@ -27,6 +27,17 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName('テンプレートファイルパス')
+			.setDesc('要約メモの作成に使用するテンプレートファイルのパス。空白の場合はデフォルト設定を使用します。(例: Templates/SummaryTemplate.md)')
+			.addText(text => text
+				.setPlaceholder('Templates/template.md')
+				.setValue(this.plugin.settings.templatePath)
+				.onChange(async (value) => {
+					this.plugin.settings.templatePath = value;
+					await this.plugin.saveSettings();
+				}));
+
 		// Key Management Section
 		containerEl.createEl('h3', { text: 'セットアップ (Setup)' });
 

@@ -7,11 +7,13 @@ import { SyncManager } from './sync';
 interface LineAudioSummarizerSettings {
 	lineUserId: string;
 	vaultId: string;
+	templatePath: string;
 }
 
 const DEFAULT_SETTINGS: LineAudioSummarizerSettings = {
 	lineUserId: '',
-	vaultId: ''
+	vaultId: '',
+	templatePath: ''
 }
 
 export default class LineAudioSummarizerPlugin extends Plugin {
@@ -30,8 +32,7 @@ export default class LineAudioSummarizerPlugin extends Plugin {
 		this.apiClient = new ApiClient();
 
 		// Use Generated Vault ID
-		const vaultId = this.settings.vaultId;
-		this.syncManager = new SyncManager(this.app, this.apiClient, this.cryptoManager, vaultId);
+		this.syncManager = new SyncManager(this.app, this.apiClient, this.cryptoManager, this);
 
 		// Add Ribbon Icon for Sync
 		this.addRibbonIcon('refresh-cw', 'Inboxを同期', async () => {
