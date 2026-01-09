@@ -38,3 +38,28 @@ export async function replyMessage(replyToken: string, text: string, accessToken
         throw new Error(`Failed to reply message: ${response.status} ${response.statusText} - ${errorBody}`);
     }
 }
+
+export async function replyFlexMessage(replyToken: string, altText: string, contents: any, accessToken: string): Promise<void> {
+    const response = await fetch('https://api.line.me/v2/bot/message/reply', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+            replyToken: replyToken,
+            messages: [
+                {
+                    type: 'flex',
+                    altText: altText,
+                    contents: contents
+                }
+            ]
+        })
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Failed to reply flex message: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+}
