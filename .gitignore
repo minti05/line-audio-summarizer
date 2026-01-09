@@ -32,3 +32,6 @@ yarn-error.log*
 
 # Obsidian
 data.json
+
+# AI agent
+docs/line-audio-summarizer.code-workspace

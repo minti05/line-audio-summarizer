@@ -1,0 +1,14 @@
+name = "line-audio-summarizer-backend"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "line-audio-summarizer-db"
+database_id = "3a1fa2c2-daa8-4361-af9f-071e74a87688"
+
+[[kv_namespaces]]
+binding = "LINE_AUDIO_KV"
+id = "770f87afa0b049cfaa15eaf3e7a1f3ec"
