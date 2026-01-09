@@ -67,13 +67,6 @@ export async function replyFlexMessage(replyToken: string, altText: string, cont
 export async function replyWelcomeMessage(replyToken: string, accessToken: string): Promise<void> {
     const welcomeBubble = {
         type: "bubble",
-        hero: {
-            type: "image",
-            url: "https://developers.line.biz/assets/images/services/bot-designer-icon.png", // Placeholder
-            size: "full",
-            aspectRatio: "20:13",
-            aspectMode: "cover",
-        },
         body: {
             type: "box",
             layout: "vertical",
@@ -86,7 +79,7 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                 },
                 {
                     type: "text",
-                    text: "あなたの思考整理パートナーへようこそ！",
+                    text: "あなたの思考整理パートナー。",
                     margin: "md",
                     size: "md",
                     wrap: true
@@ -102,6 +95,14 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                     size: "sm",
                     wrap: true,
                     color: "#666666"
+                },
+                {
+                    type: "text",
+                    text: "まずは連携設定を行ってください👇",
+                    margin: "lg",
+                    size: "sm",
+                    align: "center",
+                    color: "#000000"
                 }
             ]
         },
@@ -116,7 +117,7 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                     height: "sm",
                     action: {
                         type: "message",
-                        label: "自分のIDを確認 (/id)",
+                        label: "User ID を確認する",
                         text: "/id"
                     }
                 },
@@ -125,8 +126,18 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                     style: "secondary",
                     height: "sm",
                     action: {
+                        type: "uri",
+                        label: "Obsidian連携ガイド",
+                        uri: "https://example.com/guide (仮)" // Replace later or remove
+                    }
+                },
+                {
+                    type: "button",
+                    style: "link",
+                    height: "sm",
+                    action: {
                         type: "message",
-                        label: "ヘルプ (/help)",
+                        label: "ヘルプを表示",
                         text: "/help"
                     }
                 }
