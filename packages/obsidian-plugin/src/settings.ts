@@ -28,20 +28,31 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 				}));
 
 		// Key Management Section
-		containerEl.createEl('h3', { text: 'セキュリティ設定 (暗号化)' });
+		containerEl.createEl('h3', { text: 'セットアップ (Setup)' });
 
 		const keyStatusDiv = containerEl.createDiv();
 		this.updateKeyStatus(keyStatusDiv);
 
 		new Setting(containerEl)
-			.setName('デバイス登録 (鍵ペア生成)')
+			.setName('Step 1: LINE User ID の入力')
+			.setDesc('LINE Bot に "/id" と送信して取得したIDを入力してください。')
+			.addText(text => text
+				.setPlaceholder('Uxxxxxxxx...')
+				.setValue(this.plugin.settings.lineUserId)
+				.onChange(async (value) => {
+					this.plugin.settings.lineUserId = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Step 2: デバイス登録 (鍵ペア生成)')
 			.setDesc('このデバイス用の暗号化鍵を生成し、サーバーに登録します。')
 			.addButton(button => button
 				.setButtonText('鍵を生成して登録')
 				.setCta()
 				.onClick(async () => {
 					if (!this.plugin.settings.lineUserId) {
-						new NoticeModal(this.app, 'エラー', '先に LINE User ID を入力してください。').open();
+						new NoticeModal(this.app, 'エラー', '先に Step 1 で LINE User ID を入力してください。').open();
 						return;
 					}
 
@@ -57,7 +68,7 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 						// 3. Register Public Key
 						await this.plugin.apiClient.registerPublicKey(this.plugin.settings.vaultId, publicKeyPem);
 
-						new NoticeModal(this.app, '成功', 'デバイスの登録と鍵の生成が完了しました！').open();
+						new NoticeModal(this.app, '成功', 'デバイスの登録と鍵の生成が完了しました！\nこれで設定は完了です。').open();
 						this.updateKeyStatus(keyStatusDiv);
 
 					} catch (e: any) {
