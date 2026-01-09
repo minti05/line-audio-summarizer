@@ -1,6 +1,6 @@
 import { Env } from '../types/env';
 import { validateSignature } from '../core/security';
-import { getContent, replyMessage, replyFlexMessage } from '../services/line';
+import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage } from '../services/line';
 import { generateSummary } from '../services/gemini';
 import { getPublicKey, addToInbox } from '../services/db';
 import { encryptWithPublicKey } from '../services/crypto';
@@ -34,8 +34,13 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                 try {
                     const userId = event.source.userId;
 
+                    // Handle Follow Event
+                    if (event.type === 'follow') {
+                        await replyWelcomeMessage(event.replyToken, env.LINE_CHANNEL_ACCESS_TOKEN);
+                    }
+
                     // Handle Audio Message
-                    if (event.type === 'message' && event.message.type === 'audio') {
+                    else if (event.type === 'message' && event.message.type === 'audio') {
                         const messageId = event.message.id;
                         const replyToken = event.replyToken;
 
@@ -78,19 +83,19 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                             await addToInbox(env.DB, userId, encrypted.encryptedData, encrypted.iv, encrypted.encryptedKey);
 
                             await replyMessage(replyToken, 'Inboxに保存しました (暗号化済み)。Obsidianを開いて同期してください。', env.LINE_CHANNEL_ACCESS_TOKEN);
-
-                            // Clean up KV (Optional)
-                            // await env.LINE_AUDIO_KV.delete(`session:${sessionId}`);
                         }
                         else if (action === 'discard') {
-                            await replyMessage(replyToken, 'Discarded.', env.LINE_CHANNEL_ACCESS_TOKEN);
+                            await replyMessage(replyToken, '破棄しました。', env.LINE_CHANNEL_ACCESS_TOKEN);
                         }
                     }
                     // Handle Text Commands
                     else if (event.type === 'message' && event.message.type === 'text') {
                         const text = event.message.text.trim();
                         if (text === '/id') {
-                            await replyMessage(event.replyToken, `Your LINE User ID is:\n${userId}\n\nPlease enter this ID in your Obsidian settings.`, env.LINE_CHANNEL_ACCESS_TOKEN);
+                            await replyMessage(event.replyToken, `あなたの LINE User ID はこちらです:\n${userId}\n\nこのIDを Obsidian の設定画面に入力してください。`, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        } else if (text === '/help' || text === 'ヘルプ') {
+                            const helpText = "【コマンド一覧】\n/id : 自分のUser IDを確認\n/help : このヘルプを表示\n\n音声メッセージを送ると、AIが要約して確認メッセージを返します。「保存」を押すとObsidianに同期されます。";
+                            await replyMessage(event.replyToken, helpText, env.LINE_CHANNEL_ACCESS_TOKEN);
                         }
                     }
                 } catch (err: any) {
