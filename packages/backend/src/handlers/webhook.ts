@@ -1,7 +1,8 @@
 import { Env } from '../types/env';
 import { validateSignature } from '../core/security';
-import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage } from '../services/line';
+import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage, replyPromptModeSelection } from '../services/line';
 import { generateSummary } from '../services/gemini';
+import { getSystemPrompt, PromptMode } from '../core/prompts';
 import { getPublicKey, addToInbox } from '../services/db';
 import { encryptWithPublicKey } from '../services/crypto';
 import { setTempState, getTempState } from '../services/kv';
@@ -46,9 +47,13 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                         const replyToken = event.replyToken;
 
                         // Check User Config
+                        // Check User Config
                         const userConfig = await getUserConfig(env.DB, userId);
                         const confirmMode = userConfig ? userConfig.confirm_mode : 1; // Default ON
-                        const systemPrompt = userConfig?.custom_prompt || undefined; // Use undefined to fallback to default in generateSummary if strict null check allows (wait, generateSummary default arg works if undefined is passed? No, default arg only works if argument is missing or explicitly undefined. Let's pass it anyway.)
+                        const promptMode = (userConfig?.prompt_mode as PromptMode) || 'memo';
+                        const customPrompt = userConfig?.custom_prompt || null;
+
+                        const systemPrompt = getSystemPrompt(promptMode, customPrompt);
 
                         // 1. Get Audio Content
                         const audioBuffer = await getContent(messageId, env.LINE_CHANNEL_ACCESS_TOKEN);
@@ -82,6 +87,27 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                         }
                         else if (action === 'discard') {
                             await replyMessage(replyToken, '破棄しました。', env.LINE_CHANNEL_ACCESS_TOKEN);
+                        }
+                        else if (action === 'set_mode') {
+                            const mode = params.get('mode') as any;
+                            // Verify mode validity
+                            if (['diary', 'todo', 'memo', 'brainstorm'].includes(mode)) {
+                                const config = await getUserConfig(env.DB, userId);
+                                await upsertUserConfig(env.DB, {
+                                    line_user_id: userId,
+                                    confirm_mode: config?.confirm_mode ?? 1,
+                                    prompt_mode: mode,
+                                    custom_prompt: null // Reset custom prompt when switching standard modes
+                                });
+                                // Map internal mode to display name
+                                const modeNames: { [key: string]: string } = {
+                                    diary: '日記モード',
+                                    todo: 'TODO抽出',
+                                    memo: '気づき・メモ',
+                                    brainstorm: 'アイデア壁打ち'
+                                };
+                                await replyMessage(replyToken, `✅ ${modeNames[mode]} に切り替えました。`, env.LINE_CHANNEL_ACCESS_TOKEN);
+                            }
                         }
                     }
                     else if (event.type === 'message' && event.message.type === 'text') {
@@ -180,7 +206,19 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                             // Set state to wait for input (TTL 5 mins)
                             await setTempState(env.LINE_AUDIO_KV, `prompt_setting_state:${userId}`, 'waiting', 300);
 
-                            await replyMessage(event.replyToken, msg, env.LINE_CHANNEL_ACCESS_TOKEN);
+                            // Show current prompt and offer mode switch
+                            const msg1 = `現在のプロンプトモード: 【${config?.prompt_mode || 'memo'}】\n\nもしモードを変更したい場合は、下の「モード変更」と送信するか、メニューを利用してください。`;
+
+                            // For simplicity, we trigger the mode selection menu if they type /prompt
+                            // But per original design, /prompt was for Custom Prompt editing.
+                            // Let's combine: Show Status -> If user wants to edit custom, they reply text. If they want to switch mode, we show a button?
+
+                            // Let's just send the text prompt AND the mode selection carousel together? 
+                            // No, LINE only allows 5 bubbles or one reply.
+
+                            await replyPromptModeSelection(event.replyToken, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        } else if (text === 'モード変更' || text === '/mode') {
+                            await replyPromptModeSelection(event.replyToken, env.LINE_CHANNEL_ACCESS_TOKEN);
                         }
                     }
                 }
