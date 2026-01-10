@@ -25,21 +25,21 @@ export default class LineAudioSummarizerPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// Initialize Services
+		// サービスの初期化
 		this.cryptoManager = new CryptoManager();
 		await this.cryptoManager.initialize();
 
 		this.apiClient = new ApiClient();
 
-		// Use Generated Vault ID
+		// 生成されたVault IDを使用
 		this.syncManager = new SyncManager(this.app, this.apiClient, this.cryptoManager, this);
 
-		// Add Ribbon Icon for Sync
+		// 同期用リボンアイコンを追加
 		this.addRibbonIcon('refresh-cw', 'Inboxを同期', async () => {
 			await this.syncManager.syncMessages();
 		});
 
-		// Add Settings Tab
+		// 設定タブを追加
 		this.addSettingTab(new LineAudioSummarizerSettingTab(this.app, this));
 	}
 

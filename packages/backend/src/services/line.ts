@@ -1,5 +1,7 @@
+import { PromptMode } from '../core/prompts';
+
 /**
- * LINE Messaging API Service
+ * LINE Messaging API サービス
  */
 export async function getContent(messageId: string, accessToken: string): Promise<ArrayBuffer> {
     const response = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
@@ -128,7 +130,7 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                     action: {
                         type: "uri",
                         label: "Obsidian連携ガイド",
-                        uri: "https://example.com/guide (仮)" // Replace later or remove
+                        uri: "https://example.com/guide (仮)" // 後で置き換えるか削除
                     }
                 },
                 {
@@ -145,5 +147,94 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
             flex: 0
         }
     };
-    await replyFlexMessage(replyToken, "LINE Audio Summarizerへようこそ！", welcomeBubble, accessToken);
+
+    const modeSelectionBubble = createModeSelectionBubble();
+
+    const carousel = {
+        type: "carousel",
+        contents: [welcomeBubble, modeSelectionBubble]
+    };
+
+    await replyFlexMessage(replyToken, "LINE Audio Summarizerへようこそ！利用モードを選択してください。", carousel, accessToken);
+}
+
+function createModeSelectionBubble() {
+    return {
+        type: "bubble",
+        body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+                {
+                    type: "text",
+                    text: "モード選択",
+                    weight: "bold",
+                    size: "xl"
+                },
+                {
+                    type: "text",
+                    text: "AIの要約スタイルを選択してください。",
+                    margin: "md",
+                    size: "sm",
+                    wrap: true
+                }
+            ]
+        },
+        footer: {
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            contents: [
+                {
+                    type: "button",
+                    style: "secondary",
+                    height: "sm",
+                    action: {
+                        type: "postback",
+                        label: "の日記 (Diary)",
+                        data: "action=set_mode&mode=diary",
+                        displayText: "日記モードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    height: "sm",
+                    action: {
+                        type: "postback",
+                        label: "ToDoリスト (ToDo)",
+                        data: "action=set_mode&mode=todo",
+                        displayText: "ToDoモードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    height: "sm",
+                    action: {
+                        type: "postback",
+                        label: "メモ書き (Memo)",
+                        data: "action=set_mode&mode=memo",
+                        displayText: "メモモードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    height: "sm",
+                    action: {
+                        type: "postback",
+                        label: "壁打ち (Brainstorm)",
+                        data: "action=set_mode&mode=brainstorm",
+                        displayText: "壁打ちモードに設定"
+                    }
+                }
+            ]
+        }
+    };
+}
+
+export async function replyPromptModeSelection(replyToken: string, accessToken: string): Promise<void> {
+    const bubble = createModeSelectionBubble();
+    await replyFlexMessage(replyToken, "モード選択", bubble, accessToken);
 }
