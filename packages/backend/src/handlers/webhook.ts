@@ -1,6 +1,6 @@
 import { Env } from '../types/env';
 import { validateSignature } from '../core/security';
-import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage, replyPromptModeSelection, startLoadingAnimation, replyInitialSetupMessages, replyMessages, createModeSelectionBubble } from '../services/line';
+import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage, replyPromptModeSelection, startLoadingAnimation, replyInitialSetupMessages, replyMessages, createModeSelectionBubble, pushMessage } from '../services/line';
 import { generateSummary } from '../services/gemini';
 import { getPublicKey, addToInbox, getUserConfig, upsertUserConfig, getWebhookConfig, upsertWebhookConfig } from '../services/db';
 import { encryptWithPublicKey } from '../services/crypto';
@@ -37,6 +37,16 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
 
                     if (event.type === 'follow') {
                         await replyInitialSetupMessages(event.replyToken, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        return;
+                    }
+
+                    if (event.type === 'unfollow') {
+                        console.log(`User ${userId} unfollowed. Cleaning up data.`);
+                        await env.DB.prepare('DELETE FROM PublicKeys WHERE line_user_id = ?').bind(userId).run();
+                        await env.DB.prepare('DELETE FROM WebhookConfigs WHERE line_user_id = ?').bind(userId).run();
+                        await env.DB.prepare('DELETE FROM UserConfigs WHERE line_user_id = ?').bind(userId).run();
+                        await env.LINE_AUDIO_KV.delete(`setup_state:${userId}`);
+                        await env.LINE_AUDIO_KV.delete(`prompt_setting_state:${userId}`);
                         return;
                     }
 
@@ -208,24 +218,11 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
 
                             const msg = `【プロンプト設定】\n現在のモード: ${currentMode}\nカスタムプロンプト: ${currentPrompt}\n\n👇 モードを変更するには下のボタンを押してください。\n\n✏️ カスタムプロンプトを変更するには、このメッセージに返信する形で新しいプロンプトを入力してください。\n(「リセット」と送信すると標準に戻ります)`;
 
-                            await replyPromptModeSelection(event.replyToken, env.LINE_CHANNEL_ACCESS_TOKEN);
-                            // Note: replyPromptModeSelection will send a message. But we want to send the text explanation too?
-                            // replyFlexMessage sends ONE message.
-                            // If we want two messages (Text + Flex), we need to call replyMessage (push message?)
-                            // Line Reply Token can only be used ONCE.
-                            // So we cannot call replyMessage then replyPromptModeSelection.
-                            // We should handle this by sending a Flex Bubble that *contains* the explanation?
-                            // OR, since replyPromptModeSelection is generic, maybe we should just send text explanation as part of the next turn?
-                            // No, User Experience.
-                            // Let's modify replyPromptModeSelection to accept "Allow Text?" No.
-                            // Let's just reply with a single message.
-                            // The Flex Message in replyPromptModeSelection already has "モード選択" title.
-                            // Let's just use that.
-                            // But we also want to allow "Custom Prompt Input".
-
-                            // Solution: Send prompt mode selection.
-                            // Also set "waiting" state for Custom Prompt input?
-                            // Yes, allow user to input text OR click button.
+                            const bubble = createModeSelectionBubble();
+                            await replyMessages(event.replyToken, [
+                                { type: 'text', text: msg },
+                                { type: 'flex', altText: "モード選択", contents: bubble }
+                            ], env.LINE_CHANNEL_ACCESS_TOKEN);
 
                             await setTempState(env.LINE_AUDIO_KV, `prompt_setting_state:${userId}`, 'waiting', 300);
                         } else if (text.startsWith('/webhook')) {
@@ -264,7 +261,14 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                 }
                 catch (err: any) {
                     console.error('Error processing event:', err);
-                    // Error reply logic...
+                    try {
+                        // エラーが発生した場合、ユーザーに通知を試みる (デバッグ用)
+                        if (event.source && event.source.userId) {
+                            await pushMessage(event.source.userId, `システムエラーが発生しました:\n${err.message}`, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        }
+                    } catch (e) {
+                        console.error('Failed to send error notification:', e);
+                    }
                 }
             }));
         })());
@@ -370,8 +374,10 @@ async function handleSetupMode(event: any, env: Env, userId: string, currentStat
     const accessToken = env.LINE_CHANNEL_ACCESS_TOKEN;
 
     if (event.type === 'postback') {
+        console.log('[Setup] Postback received:', event.postback.data); // LOG ADDED
         const params = new URLSearchParams(event.postback.data);
         const action = params.get('action');
+        console.log('[Setup] Action parsed:', action); // LOG ADDED
 
         if (action === 'setup_obsidian') {
             await replyMessages(replyToken, [

@@ -41,6 +41,30 @@ export async function replyMessage(replyToken: string, text: string, accessToken
     }
 }
 
+export async function pushMessage(userId: string, text: string, accessToken: string): Promise<void> {
+    const response = await fetch('https://api.line.me/v2/bot/message/push', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+            to: userId,
+            messages: [
+                {
+                    type: 'text',
+                    text: text
+                }
+            ]
+        })
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        console.warn(`Failed to push message: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+}
+
 export async function replyFlexMessage(replyToken: string, altText: string, contents: any, accessToken: string): Promise<void> {
     const response = await fetch('https://api.line.me/v2/bot/message/reply', {
         method: 'POST',
@@ -108,7 +132,7 @@ export async function replyInitialSetupMessages(replyToken: string, accessToken:
                     },
                     {
                         type: "text",
-                        text: "どちらの方法で利用しますか？",
+                        text: "どちらの方法で利用しますか？（後から変更可能です）",
                         margin: "md",
                         size: "sm",
                         wrap: true
