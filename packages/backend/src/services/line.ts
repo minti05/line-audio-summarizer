@@ -131,7 +131,7 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                     action: {
                         type: "uri",
                         label: "Obsidian連携ガイド",
-                        uri: "https://example.com/guide (仮)" // 後で置き換えるか削除
+                        uri: "https://example.com/guide"
                     }
                 },
                 {
