@@ -142,20 +142,6 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                                 return;
                             }
 
-                            // リセットキーワードのチェック
-                            if (text === 'リセット') {
-                                const userConfig = await getUserConfig(env.DB, userId);
-                                await upsertUserConfig(env.DB, {
-                                    line_user_id: userId,
-                                    confirm_mode: userConfig?.confirm_mode ?? 1,
-                                    prompt_mode: 'memo',
-                                    custom_prompt: null // リセット
-                                });
-                                await env.LINE_AUDIO_KV.delete(promptStateKey);
-                                await replyMessage(event.replyToken, `✅ プロンプトを標準に戻しました。`, env.LINE_CHANNEL_ACCESS_TOKEN);
-                                return;
-                            }
-
                             // カスタムプロンプトの更新
                             const userConfig = await getUserConfig(env.DB, userId);
                             await upsertUserConfig(env.DB, {
@@ -216,7 +202,7 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                             const currentMode = config?.prompt_mode || 'memo';
                             const currentPrompt = config?.custom_prompt || "未設定 (標準)";
 
-                            const msg = `【プロンプト設定】\n現在のモード: ${currentMode}\nカスタムプロンプト: ${currentPrompt}\n\n👇 モードを変更するには下のボタンを押してください。\n\n✏️ カスタムプロンプトを変更するには、このメッセージに返信する形で新しいプロンプトを入力してください。\n(「リセット」と送信すると標準に戻ります)`;
+                            const msg = `【プロンプト設定】\n現在のモード: ${currentMode}\nカスタムプロンプト: ${currentPrompt}\n\n👇 モードを変更するには下のボタンを押してください。\n\n✏️ カスタムプロンプトを変更するには、このメッセージに返信する形で新しいプロンプトを入力してください。`;
 
                             const bubble = createModeSelectionBubble();
                             await replyMessages(event.replyToken, [
