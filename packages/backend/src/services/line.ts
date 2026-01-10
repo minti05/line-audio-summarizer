@@ -112,7 +112,7 @@ export async function replyMessages(replyToken: string, messages: any[], accessT
 export async function replyInitialSetupMessages(replyToken: string, accessToken: string): Promise<void> {
     const textMessage = {
         type: "text",
-        text: "友達追加してくれてありがとうございます。\nこのaudio summarizerでできることを伝えます。\n\n大きく機能は2つあって、\n・algoliaと連携させて音声要約を保存できる機能\n・webhookを発行して、自分の好きなサービス(Xやslack）に連携させることができる\n\nどのように利用するかを選んでください。"
+        text: "友達追加ありがとうございます！\n\nこのLINE Audio Summarizerでできることは大きく2つです。\n\n1️⃣ Obsidian連携\n音声要約をクラウド経由で同期し、Obsidianに自動保存します。\n\n2️⃣ Webhook連携\n要約結果をWebhookで送信し、SlackやXなど、お好きなサービスと連携できます。\n\n👇 以下のボタンから、利用方法を選択してください。"
     };
 
     const flexMessage = {
@@ -128,13 +128,15 @@ export async function replyInitialSetupMessages(replyToken: string, accessToken:
                         type: "text",
                         text: "利用方法の選択",
                         weight: "bold",
-                        size: "xl"
+                        size: "xl",
+                        color: "#111111"
                     },
                     {
                         type: "text",
-                        text: "どちらの方法で利用しますか？（後から変更可能です）",
+                        text: "どちらの方法で利用しますか？\n（後から変更可能です）",
                         margin: "md",
                         size: "sm",
+                        color: "#666666",
                         wrap: true
                     }
                 ]
@@ -148,6 +150,7 @@ export async function replyInitialSetupMessages(replyToken: string, accessToken:
                         type: "button",
                         style: "primary",
                         height: "sm",
+                        color: "#7E57C2", // Deep Purple
                         action: {
                             type: "postback",
                             label: "Obsidianに接続する",
@@ -157,8 +160,9 @@ export async function replyInitialSetupMessages(replyToken: string, accessToken:
                     },
                     {
                         type: "button",
-                        style: "secondary",
+                        style: "primary", // Changed to primary for better visibility
                         height: "sm",
+                        color: "#26A69A", // Teal
                         action: {
                             type: "postback",
                             label: "Webhookとして利用する",
@@ -268,6 +272,97 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
 }
 
 export function createModeSelectionBubble() {
+    const modes = [
+        {
+            label: "気づき・メモ",
+            sub: "Memo",
+            desc: "ふとしたアイデアを忘れないうちに記録。",
+            mode: "memo",
+            color: "#E0F7FA", // Light Cyan
+            icon: "📝"
+        },
+        {
+            label: "日記モード",
+            sub: "Diary",
+            desc: "1日の振り返りを感情とともに整理。",
+            mode: "diary",
+            color: "#F3E5F5", // Light Purple
+            icon: "📔"
+        },
+        {
+            label: "TODO抽出",
+            sub: "ToDo",
+            desc: "すべきことを明確にリスト化。",
+            mode: "todo",
+            color: "#E8F5E9", // Light Green
+            icon: "✅"
+        },
+        {
+            label: "アイデア壁打ち",
+            sub: "Brainstorm",
+            desc: "思考を構造化し、深めるための「問い」を提案。",
+            mode: "brainstorm",
+            color: "#FFF3E0", // Light Orange
+            icon: "💡"
+        }
+    ];
+
+    const modeContents = modes.map((m) => ({
+        type: "box",
+        layout: "vertical",
+        contents: [
+            {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    {
+                        type: "text",
+                        text: m.icon,
+                        size: "lg",
+                        flex: 0,
+                        margin: "none"
+                    },
+                    {
+                        type: "text",
+                        text: m.label,
+                        weight: "bold",
+                        size: "md",
+                        flex: 1,
+                        margin: "sm",
+                        color: "#333333"
+                    },
+                    {
+                        type: "text",
+                        text: m.sub,
+                        size: "xs",
+                        color: "#999999",
+                        align: "end",
+                        gravity: "center"
+                    }
+                ],
+                alignItems: "center"
+            },
+            {
+                type: "text",
+                text: m.desc,
+                size: "xs",
+                color: "#666666",
+                wrap: true,
+                margin: "sm"
+            }
+        ],
+        paddingAll: "lg",
+        backgroundColor: m.color,
+        cornerRadius: "md",
+        action: {
+            type: "postback",
+            label: m.label,
+            data: `action=set_mode&mode=${m.mode}`,
+            displayText: `${m.label}に設定`
+        },
+        margin: "md"
+    }));
+
     return {
         type: "bubble",
         body: {
@@ -278,65 +373,26 @@ export function createModeSelectionBubble() {
                     type: "text",
                     text: "モード選択",
                     weight: "bold",
-                    size: "xl"
+                    size: "xl",
+                    color: "#111111"
                 },
                 {
                     type: "text",
                     text: "AIの要約スタイルを選択してください。",
                     margin: "md",
                     size: "sm",
+                    color: "#666666",
                     wrap: true
-                }
-            ]
-        },
-        footer: {
-            type: "box",
-            layout: "vertical",
-            spacing: "sm",
-            contents: [
-                {
-                    type: "button",
-                    style: "secondary",
-                    height: "sm",
-                    action: {
-                        type: "postback",
-                        label: "の日記 (Diary)",
-                        data: "action=set_mode&mode=diary",
-                        displayText: "日記モードに設定"
-                    }
                 },
                 {
-                    type: "button",
-                    style: "secondary",
-                    height: "sm",
-                    action: {
-                        type: "postback",
-                        label: "ToDoリスト (ToDo)",
-                        data: "action=set_mode&mode=todo",
-                        displayText: "ToDoモードに設定"
-                    }
+                    type: "separator",
+                    margin: "lg"
                 },
                 {
-                    type: "button",
-                    style: "secondary",
-                    height: "sm",
-                    action: {
-                        type: "postback",
-                        label: "メモ書き (Memo)",
-                        data: "action=set_mode&mode=memo",
-                        displayText: "メモモードに設定"
-                    }
-                },
-                {
-                    type: "button",
-                    style: "secondary",
-                    height: "sm",
-                    action: {
-                        type: "postback",
-                        label: "壁打ち (Brainstorm)",
-                        data: "action=set_mode&mode=brainstorm",
-                        displayText: "壁打ちモードに設定"
-                    }
+                    type: "box",
+                    layout: "vertical",
+                    contents: modeContents,
+                    margin: "lg"
                 }
             ]
         }
