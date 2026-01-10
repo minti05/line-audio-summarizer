@@ -21,7 +21,7 @@ export async function apiHandler(request: Request, env: Env): Promise<Response> 
             const { lineUserId, vaultId } = body;
 
             if (!lineUserId || !vaultId) {
-                return new Response('Missing lineUserId or vaultId', { status: 400, headers: corsHeaders });
+                return new Response('lineUserId または vaultId が不足しています', { status: 400, headers: corsHeaders });
             }
 
             // Save to DB (Upsert)
@@ -36,7 +36,7 @@ export async function apiHandler(request: Request, env: Env): Promise<Response> 
             await env.LINE_AUDIO_KV.put(`vault:${vaultId}`, lineUserId);
             await env.LINE_AUDIO_KV.put(`user_vault:${lineUserId}`, vaultId);
 
-            return new Response(JSON.stringify({ success: true, message: 'Registered successfully' }), {
+            return new Response(JSON.stringify({ success: true, message: '登録が完了しました' }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
 
@@ -57,13 +57,13 @@ export async function apiHandler(request: Request, env: Env): Promise<Response> 
             const { vaultId, publicKeyPem } = body;
 
             if (!vaultId || !publicKeyPem) {
-                return new Response('Missing vaultId or publicKeyPem', { status: 400, headers: corsHeaders });
+                return new Response('vaultId または publicKeyPem が不足しています', { status: 400, headers: corsHeaders });
             }
 
             // Lookup Line User ID from Vault ID
             const lineUserId = await env.LINE_AUDIO_KV.get(`vault:${vaultId}`);
             if (!lineUserId) {
-                return new Response('Unauthorized: Vault ID not linked', { status: 401, headers: corsHeaders });
+                return new Response('認証エラー: Vault ID が連携されていません', { status: 401, headers: corsHeaders });
             }
 
             await upsertPublicKey(env.DB, lineUserId, publicKeyPem);
@@ -85,12 +85,12 @@ export async function apiHandler(request: Request, env: Env): Promise<Response> 
     if (url.pathname === '/api/inbox' && request.method === 'GET') {
         const vaultId = url.searchParams.get('vaultId');
         if (!vaultId) {
-            return new Response('Missing vaultId', { status: 400, headers: corsHeaders });
+            return new Response('vaultId が不足しています', { status: 400, headers: corsHeaders });
         }
 
         const lineUserId = await env.LINE_AUDIO_KV.get(`vault:${vaultId}`);
         if (!lineUserId) {
-            return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+            return new Response('認証エラー', { status: 401, headers: corsHeaders });
         }
 
         try {

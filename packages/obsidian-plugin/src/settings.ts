@@ -39,7 +39,7 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 				}));
 
 		// Key Management Section
-		containerEl.createEl('h3', { text: 'セットアップ (Setup)' });
+		containerEl.createEl('h3', { text: 'セットアップ' });
 
 		const keyStatusDiv = containerEl.createDiv();
 		this.updateKeyStatus(keyStatusDiv);
