@@ -1,6 +1,6 @@
 import { Env } from '../types/env';
 import { validateSignature } from '../core/security';
-import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage, replyPromptModeSelection, startLoadingAnimation } from '../services/line';
+import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage, replyPromptModeSelection, startLoadingAnimation, replyInitialSetupMessages, replyMessages, createModeSelectionBubble } from '../services/line';
 import { generateSummary } from '../services/gemini';
 import { getPublicKey, addToInbox, getUserConfig, upsertUserConfig, getWebhookConfig, upsertWebhookConfig } from '../services/db';
 import { encryptWithPublicKey } from '../services/crypto';
@@ -36,9 +36,22 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                     const userId = event.source.userId;
 
                     if (event.type === 'follow') {
-                        await replyWelcomeMessage(event.replyToken, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        await replyInitialSetupMessages(event.replyToken, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        return;
                     }
-                    else if (event.type === 'message' && event.message.type === 'audio') {
+
+                    // Setup Status Check
+                    const hasPubKey = await getPublicKey(env.DB, userId);
+                    const webhookConf = await getWebhookConfig(env.DB, userId);
+                    const isSetupDone = !!hasPubKey || !!(webhookConf?.webhook_url);
+                    const setupState = await getTempState<string>(env.LINE_AUDIO_KV, `setup_state:${userId}`);
+
+                    if (!isSetupDone || setupState) {
+                        await handleSetupMode(event, env, userId, setupState);
+                        return;
+                    }
+
+                    if (event.type === 'message' && event.message.type === 'audio') {
                         const messageId = event.message.id;
                         const replyToken = event.replyToken;
 
@@ -350,4 +363,68 @@ async function sendConfirmationFlex(replyToken: string, summary: string, session
         }
     };
     await replyFlexMessage(replyToken, "要約が作成されました", bubble, accessToken);
+}
+
+async function handleSetupMode(event: any, env: Env, userId: string, currentState: any): Promise<void> {
+    const replyToken = event.replyToken;
+    const accessToken = env.LINE_CHANNEL_ACCESS_TOKEN;
+
+    if (event.type === 'postback') {
+        const params = new URLSearchParams(event.postback.data);
+        const action = params.get('action');
+
+        if (action === 'setup_obsidian') {
+            await replyMessages(replyToken, [
+                { type: 'text', text: `あなたのUser IDは以下です。コピーしてObsidianの設定に入力してください。` },
+                { type: 'text', text: userId },
+                { type: 'text', text: `設定が完了したら、このチャットに「完了」や「OK」など、何かメッセージを送ってください。\nそれをもって連携確認を行います。` }
+            ], accessToken);
+            await setTempState(env.LINE_AUDIO_KV, `setup_state:${userId}`, 'waiting_for_obsidian', 86400); // 1 day wait
+        } else if (action === 'setup_webhook') {
+            await replyMessages(replyToken, [
+                { type: 'text', text: `連携するWebhook URL (https://...) を入力して送信してください。` }
+            ], accessToken);
+            await setTempState(env.LINE_AUDIO_KV, `setup_state:${userId}`, 'waiting_for_webhook', 3600); // 1 hour wait
+        } else {
+            await replyInitialSetupMessages(replyToken, accessToken);
+        }
+        return;
+    }
+
+    if (event.type === 'message' && event.message.type === 'text') {
+        const text = event.message.text.trim();
+
+        if (currentState === 'waiting_for_obsidian') {
+            const hasKey = await getPublicKey(env.DB, userId);
+            if (hasKey) {
+                await env.LINE_AUDIO_KV.delete(`setup_state:${userId}`);
+                const bubble = createModeSelectionBubble();
+                await replyMessages(replyToken, [
+                    { type: 'text', text: "✅ Obsidian連携が確認できました！" },
+                    { type: 'flex', altText: "モード選択", contents: bubble }
+                ], accessToken);
+            } else {
+                await replyMessage(replyToken, "🚫 まだ連携が確認できませんでした。\nObsidian側で設定を行い、再度メッセージを送ってください。", accessToken);
+            }
+        } else if (currentState === 'waiting_for_webhook') {
+            if (text.startsWith('https://')) {
+                await upsertWebhookConfig(env.DB, { line_user_id: userId, webhook_url: text, secret_token: null, config: null });
+                await env.LINE_AUDIO_KV.delete(`setup_state:${userId}`);
+                const bubble = createModeSelectionBubble();
+                await replyMessages(replyToken, [
+                    { type: 'text', text: "✅ Webhook連携を設定しました！" },
+                    { type: 'flex', altText: "モード選択", contents: bubble }
+                ], accessToken);
+            } else {
+                await replyMessage(replyToken, "🚫 無効なURLです。https:// から始まるURLを入力してください。", accessToken);
+            }
+        } else {
+            // No specific state, but setup not done. (e.g. user typed something random before clicking button)
+            await replyInitialSetupMessages(replyToken, accessToken);
+        }
+        return;
+    }
+
+    // Default reject for other event types during setup
+    await replyMessage(replyToken, "まずは初期設定を完了させてください。\n利用方法を選択するか、指示に従ってください。", accessToken);
 }

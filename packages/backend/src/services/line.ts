@@ -66,6 +66,90 @@ export async function replyFlexMessage(replyToken: string, altText: string, cont
     }
 }
 
+export async function replyMessages(replyToken: string, messages: any[], accessToken: string): Promise<void> {
+    const response = await fetch('https://api.line.me/v2/bot/message/reply', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+            replyToken: replyToken,
+            messages: messages
+        })
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Failed to reply messages: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+}
+
+export async function replyInitialSetupMessages(replyToken: string, accessToken: string): Promise<void> {
+    const textMessage = {
+        type: "text",
+        text: "友達追加してくれてありがとうございます。\nこのaudio summarizerでできることを伝えます。\n\n大きく機能は2つあって、\n・algoliaと連携させて音声要約を保存できる機能\n・webhookを発行して、自分の好きなサービス(Xやslack）に連携させることができる\n\nどのように利用するかを選んでください。"
+    };
+
+    const flexMessage = {
+        type: "flex",
+        altText: "初期設定: 利用方法を選択してください",
+        contents: {
+            type: "bubble",
+            body: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                    {
+                        type: "text",
+                        text: "利用方法の選択",
+                        weight: "bold",
+                        size: "xl"
+                    },
+                    {
+                        type: "text",
+                        text: "どちらの方法で利用しますか？",
+                        margin: "md",
+                        size: "sm",
+                        wrap: true
+                    }
+                ]
+            },
+            footer: {
+                type: "box",
+                layout: "vertical",
+                spacing: "sm",
+                contents: [
+                    {
+                        type: "button",
+                        style: "primary",
+                        height: "sm",
+                        action: {
+                            type: "postback",
+                            label: "Obsidianに接続する",
+                            data: "action=setup_obsidian",
+                            displayText: "Obsidianに接続する"
+                        }
+                    },
+                    {
+                        type: "button",
+                        style: "secondary",
+                        height: "sm",
+                        action: {
+                            type: "postback",
+                            label: "Webhookとして利用する",
+                            data: "action=setup_webhook",
+                            displayText: "Webhookとして利用する"
+                        }
+                    }
+                ]
+            }
+        }
+    };
+
+    await replyMessages(replyToken, [textMessage, flexMessage], accessToken);
+}
+
 export async function replyWelcomeMessage(replyToken: string, accessToken: string): Promise<void> {
     const welcomeBubble = {
         type: "bubble",
@@ -159,7 +243,7 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
     await replyFlexMessage(replyToken, "LINE Audio Summarizerへようこそ！利用モードを選択してください。", carousel, accessToken);
 }
 
-function createModeSelectionBubble() {
+export function createModeSelectionBubble() {
     return {
         type: "bubble",
         body: {
