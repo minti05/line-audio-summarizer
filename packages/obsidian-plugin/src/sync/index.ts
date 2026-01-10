@@ -16,7 +16,7 @@ export class SyncManager {
         new Notice('Inboxを確認中...');
 
         try {
-            // 1. Fetch Inbox
+            // 1. Inboxの取得
             const messages = await this.apiClient.fetchInbox(this.plugin.settings.vaultId);
 
             if (messages.length === 0) {
@@ -26,7 +26,7 @@ export class SyncManager {
 
             new Notice(`${messages.length} 件のメッセージを受信しました。復号中...`);
 
-            // 2. Decrypt and Save
+            // 2. 復号と保存
             let savedCount = 0;
             for (const msg of messages) {
                 try {
@@ -36,7 +36,7 @@ export class SyncManager {
                         msg.encrypted_data
                     );
 
-                    // 3. Save to File
+                    // 3. ファイルへの保存
                     await this.saveToFile(decryptedText, msg.created_at);
                     savedCount++;
                 } catch (err) {
@@ -56,7 +56,7 @@ export class SyncManager {
     }
 
     private async saveToFile(summary: string, timestamp: number) {
-        // Folder: VoiceSummaries
+        // 保存先フォルダ: VoiceSummaries
         const folderName = 'VoiceSummaries';
         if (!this.app.vault.getAbstractFileByPath(folderName)) {
             await this.app.vault.createFolder(folderName);
@@ -64,7 +64,7 @@ export class SyncManager {
 
         const date = moment.unix(timestamp);
 
-        // Prepare content with template if available
+        // テンプレートが利用可能な場合はコンテンツを準備
         let finalContent = `\n\n---\n\n${summary}`;
         let filename = `${folderName}/${date.format('YYYY-MM-DD-HHmm')}.md`;
         let isNewFile = true;
@@ -79,23 +79,20 @@ export class SyncManager {
                     .replace(/{{datetime}}/g, date.format('YYYY-MM-DD HH:mm'))
                     .replace(/{{summary}}/g, summary);
 
-                // If using template, maybe we want a different filename strategy? 
-                // For now, keep same filename logic but if file exists, we append to it differently?
-                // Actually, if a template is used, it usually implies creating a NEW file for each note.
-                // But the current logic supports appending.
-                // Let's assume if it's a new file, we use template. If appending, we just append summary.
-                // Or maybe we treat every message as a separate file if template is active?
-                // For simple MVP: Use template for content creation.
+                // テンプレートを使用する場合、ファイル名の戦略をどうするか？
+                // 現状は同じファイル名ロジックだが、ファイルが存在する場合は追記する。
+                // 通常テンプレートを使用する場合、新しいファイルを作成することを意味する。
+                // MVPとしては: コンテンツ作成にテンプレートを使用する。
             }
         }
 
         let file = this.app.vault.getAbstractFileByPath(filename);
         if (file instanceof TFile) {
             isNewFile = false;
-            // Append
-            await this.app.vault.append(file, `\n\n---\n\n${summary}`); // Append logic remains simple for now
+            // 追記
+            await this.app.vault.append(file, `\n\n---\n\n${summary}`); // 追記ロジックは現状シンプルに
         } else {
-            // New File
+            // 新規ファイル
             await this.app.vault.create(filename, isNewFile && templatePath ? finalContent : summary);
         }
     }
