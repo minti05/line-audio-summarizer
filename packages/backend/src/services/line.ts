@@ -100,11 +100,12 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                 },
                 {
                     type: "text",
-                    text: "まずは連携設定を行ってください👇",
+                    text: "まずは利用モードを選択してください👇",
                     margin: "lg",
                     size: "sm",
                     align: "center",
-                    color: "#000000"
+                    color: "#000000",
+                    weight: "bold"
                 }
             ]
         },

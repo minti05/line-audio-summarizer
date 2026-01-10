@@ -1,9 +1,7 @@
-import { DEFAULT_PROMPT as SYSTEM_PROMPT } from '../core/prompts';
-
 /**
  * Gemini API Service
  */
-export async function generateSummary(audioBuffer: ArrayBuffer, mimeType: string, apiKey: string, systemPrompt: string = SYSTEM_PROMPT): Promise<string> {
+export async function generateSummary(audioBuffer: ArrayBuffer, mimeType: string, apiKey: string, systemPrompt: string): Promise<string> {
     const MODEL = 'gemini-2.5-flash-lite';
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
 

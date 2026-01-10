@@ -23,7 +23,7 @@ export class ApiClient {
         });
 
         if (response.status !== 200) {
-            throw new Error(`Failed to register user: ${response.text}`);
+            throw new Error(`ユーザー登録に失敗しました: ${response.text}`);
         }
     }
 
@@ -36,7 +36,7 @@ export class ApiClient {
         });
 
         if (response.status !== 200) {
-            throw new Error(`Failed to register public key: ${response.text}`);
+            throw new Error(`公開鍵の登録に失敗しました: ${response.text}`);
         }
     }
 
@@ -48,7 +48,7 @@ export class ApiClient {
         });
 
         if (response.status !== 200) {
-            throw new Error(`Failed to fetch inbox: ${response.text}`);
+            throw new Error(`Inboxの取得に失敗しました: ${response.text}`);
         }
 
         const data = response.json;
