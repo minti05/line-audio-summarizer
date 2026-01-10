@@ -181,6 +181,37 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                             await setTempState(env.LINE_AUDIO_KV, `prompt_setting_state:${userId}`, 'waiting', 300);
 
                             await replyMessage(event.replyToken, msg, env.LINE_CHANNEL_ACCESS_TOKEN);
+                        } else if (text.startsWith('/webhook')) {
+                            const parts = text.split(/\s+/);
+                            const url = parts.length > 1 ? parts[1] : null;
+
+                            // Help / Empty check
+                            if (!url) {
+                                const helpMsg = "【Webhook設定】\n\nn8nやMakeなどのWebhook URLを設定することで、要約完了時にJSONデータを送信できます。\n\n📝 **設定方法**:\n`/webhook <URL>`\n\n例:\n`/webhook https://hooks.zapier.com/...`";
+                                await replyMessage(event.replyToken, helpMsg, env.LINE_CHANNEL_ACCESS_TOKEN);
+                                return;
+                            }
+
+                            // Validation
+                            try {
+                                new URL(url); // Simple URL validation
+                                if (!url.startsWith('https://')) {
+                                    throw new Error('HTTPS required');
+                                }
+                            } catch (e) {
+                                await replyMessage(event.replyToken, "🚫 無効なURLです。\n\n`https://` で始まる正しいURLを入力してください。", env.LINE_CHANNEL_ACCESS_TOKEN);
+                                return;
+                            }
+
+                            // Save
+                            await upsertWebhookConfig(env.DB, {
+                                line_user_id: userId,
+                                webhook_url: url,
+                                secret_token: null, // Future use
+                                config: null
+                            });
+
+                            await replyMessage(event.replyToken, `✅ Webhook URLを設定しました。\n\n今後、要約データがこちらに送信されます:\n${url}`, env.LINE_CHANNEL_ACCESS_TOKEN);
                         }
                     }
                 }
