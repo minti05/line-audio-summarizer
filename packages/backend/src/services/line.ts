@@ -98,11 +98,12 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                 },
                 {
                     type: "text",
-                    text: "まずは連携設定を行ってください👇",
+                    text: "まずは利用モードを選択してください👇",
                     margin: "lg",
                     size: "sm",
                     align: "center",
-                    color: "#000000"
+                    color: "#000000",
+                    weight: "bold"
                 }
             ]
         },
@@ -123,16 +124,6 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
                 },
                 {
                     type: "button",
-                    style: "secondary",
-                    height: "sm",
-                    action: {
-                        type: "uri",
-                        label: "Obsidian連携ガイド",
-                        uri: "https://example.com/guide (仮)" // Replace later or remove
-                    }
-                },
-                {
-                    type: "button",
                     style: "link",
                     height: "sm",
                     action: {
@@ -145,5 +136,152 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
             flex: 0
         }
     };
-    await replyFlexMessage(replyToken, "LINE Audio Summarizerへようこそ！", welcomeBubble, accessToken);
+
+    const modeSelectionBubble = {
+        type: "bubble",
+        header: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+                {
+                    type: "text",
+                    text: "利用モードを選択",
+                    weight: "bold",
+                    size: "lg"
+                }
+            ]
+        },
+        body: {
+            type: "box",
+            layout: "vertical",
+            spacing: "md",
+            contents: [
+                {
+                    type: "text",
+                    text: "AIの要約スタイルを選んでください。",
+                    size: "sm",
+                    color: "#666666"
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    action: {
+                        type: "postback",
+                        label: "📔 日記モード",
+                        data: "action=set_mode&mode=diary",
+                        displayText: "日記モードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    action: {
+                        type: "postback",
+                        label: "✅ TODO抽出",
+                        data: "action=set_mode&mode=todo",
+                        displayText: "TODO抽出モードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    action: {
+                        type: "postback",
+                        label: "📝 気づき・メモ",
+                        data: "action=set_mode&mode=memo",
+                        displayText: "メモモードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    action: {
+                        type: "postback",
+                        label: "💡 アイデア壁打ち",
+                        data: "action=set_mode&mode=brainstorm",
+                        displayText: "壁打ちモードに設定"
+                    }
+                }
+            ]
+        }
+    };
+
+    const carousel = {
+        type: "carousel",
+        contents: [welcomeBubble, modeSelectionBubble]
+    };
+
+    await replyFlexMessage(replyToken, "LINE Audio Summarizerへようこそ！利用モードを選択してください。", carousel, accessToken);
+}
+
+export async function replyPromptModeSelection(replyToken: string, accessToken: string): Promise<void> {
+    const bubble = {
+        type: "bubble",
+        header: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+                {
+                    type: "text",
+                    text: "利用モードを選択",
+                    weight: "bold",
+                    size: "lg"
+                }
+            ]
+        },
+        body: {
+            type: "box",
+            layout: "vertical",
+            spacing: "md",
+            contents: [
+                {
+                    type: "text",
+                    text: "AIの要約スタイルを変更します。",
+                    size: "sm",
+                    color: "#666666"
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    action: {
+                        type: "postback",
+                        label: "📔 日記モード",
+                        data: "action=set_mode&mode=diary",
+                        displayText: "日記モードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    action: {
+                        type: "postback",
+                        label: "✅ TODO抽出",
+                        data: "action=set_mode&mode=todo",
+                        displayText: "TODO抽出モードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    action: {
+                        type: "postback",
+                        label: "📝 気づき・メモ",
+                        data: "action=set_mode&mode=memo",
+                        displayText: "メモモードに設定"
+                    }
+                },
+                {
+                    type: "button",
+                    style: "secondary",
+                    action: {
+                        type: "postback",
+                        label: "💡 アイデア壁打ち",
+                        data: "action=set_mode&mode=brainstorm",
+                        displayText: "壁打ちモードに設定"
+                    }
+                }
+            ]
+        }
+    };
+    await replyFlexMessage(replyToken, "利用モードを選択してください", bubble, accessToken);
 }
