@@ -1,6 +1,6 @@
 import { Env } from '../types/env';
 import { validateSignature } from '../core/security';
-import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage, replyPromptModeSelection } from '../services/line';
+import { getContent, replyMessage, replyFlexMessage, replyWelcomeMessage, replyPromptModeSelection, startLoadingAnimation } from '../services/line';
 import { generateSummary } from '../services/gemini';
 import { getPublicKey, addToInbox, getUserConfig, upsertUserConfig, getWebhookConfig, upsertWebhookConfig } from '../services/db';
 import { encryptWithPublicKey } from '../services/crypto';
@@ -49,6 +49,9 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                         // プロンプトの解決
                         const promptMode = (userConfig?.prompt_mode as PromptMode) || 'memo';
                         const systemPrompt = getSystemPrompt(promptMode, userConfig?.custom_prompt);
+
+                        // 0. ローディング表示
+                        await startLoadingAnimation(userId, env.LINE_CHANNEL_ACCESS_TOKEN);
 
                         // 1. 音声コンテンツの取得
                         const audioBuffer = await getContent(messageId, env.LINE_CHANNEL_ACCESS_TOKEN);

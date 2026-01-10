@@ -239,3 +239,26 @@ export async function replyPromptModeSelection(replyToken: string, accessToken: 
     const bubble = createModeSelectionBubble();
     await replyFlexMessage(replyToken, "モード選択", bubble, accessToken);
 }
+
+export async function startLoadingAnimation(chatId: string, accessToken: string, loadingSeconds: number = 20): Promise<void> {
+    try {
+        const response = await fetch('https://api.line.me/v2/bot/chat/loading/start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+                chatId: chatId,
+                loadingSeconds: loadingSeconds
+            })
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.warn(`Failed to start loading animation: ${response.status} ${response.statusText} - ${errorBody}`);
+        }
+    } catch (e) {
+        console.warn('Error starting loading animation:', e);
+    }
+}
