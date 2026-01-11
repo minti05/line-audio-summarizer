@@ -6,6 +6,7 @@
         "shared"
     ],
     "scripts": {
+        "lint": "npm run lint --workspaces --if-present",
         "dev:plugin": "npm run dev -w packages/obsidian-plugin",
         "build:plugin": "npm run build -w packages/obsidian-plugin",
         "dev:backend": "npm run dev -w packages/backend",
