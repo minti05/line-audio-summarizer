@@ -1,4 +1,104 @@
-import { PromptMode } from '../core/prompts';
+import { PromptMode, PROMPT_MODE_DETAILS } from '../core/prompts';
+
+// ... (existing imports and code)
+
+export function createModeSelectionBubble() {
+    const modeContents = Object.values(PROMPT_MODE_DETAILS).map((details) => {
+        // Find the mode key for these details (a bit inefficient but clean for small enum)
+        const modeKey = Object.keys(PROMPT_MODE_DETAILS).find(key => PROMPT_MODE_DETAILS[key as Exclude<PromptMode, PromptMode.Custom>] === details) as PromptMode;
+
+        return {
+            type: "box",
+            layout: "vertical",
+            contents: [
+                {
+                    type: "box",
+                    layout: "horizontal",
+                    contents: [
+                        {
+                            type: "text",
+                            text: details.icon,
+                            size: "lg",
+                            flex: 0,
+                            margin: "none"
+                        },
+                        {
+                            type: "text",
+                            text: details.label,
+                            weight: "bold",
+                            size: "md",
+                            flex: 1,
+                            margin: "sm",
+                            color: "#333333"
+                        },
+                        {
+                            type: "text",
+                            text: details.sub,
+                            size: "xs",
+                            color: "#999999",
+                            align: "end",
+                            gravity: "center"
+                        }
+                    ],
+                    alignItems: "center"
+                },
+                {
+                    type: "text",
+                    text: details.desc,
+                    size: "xs",
+                    color: "#666666",
+                    wrap: true,
+                    margin: "sm"
+                }
+            ],
+            paddingAll: "lg",
+            backgroundColor: details.color,
+            cornerRadius: "md",
+            action: {
+                type: "postback",
+                label: details.label,
+                data: `action=set_mode&mode=${modeKey}`,
+                displayText: `${details.label}に設定`
+            },
+            margin: "md"
+        };
+    });
+
+    return {
+        type: "bubble",
+        body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+                {
+                    type: "text",
+                    text: "モード選択",
+                    weight: "bold",
+                    size: "xl",
+                    color: "#111111"
+                },
+                {
+                    type: "text",
+                    text: "AIの要約スタイルを選択してください。",
+                    margin: "md",
+                    size: "sm",
+                    color: "#666666",
+                    wrap: true
+                },
+                {
+                    type: "separator",
+                    margin: "lg"
+                },
+                {
+                    type: "box",
+                    layout: "vertical",
+                    contents: modeContents,
+                    margin: "lg"
+                }
+            ]
+        }
+    };
+}
 
 /**
  * LINE Messaging API サービス
@@ -169,6 +269,99 @@ export async function replyInitialSetupMessages(replyToken: string, accessToken:
                             data: "action=setup_webhook",
                             displayText: "Webhookとして利用する"
                         }
+                    },
+                    {
+                        type: "button",
+                        style: "primary", // Changed to primary for better visibility
+                        height: "sm",
+                        color: "#444444", // Teal
+                        action: {
+                            type: "postback",
+                            label: "設定せずに使用する",
+                            data: "action=setup_nothing",
+                            displayText: "設定せずに使用する"
+                        }
+                    }
+                ]
+            }
+        }
+    };
+
+    await replyMessages(replyToken, [textMessage, flexMessage], accessToken);
+}
+
+export async function replyChangeTargetMessages(replyToken: string, accessToken: string): Promise<void> {
+    const textMessage = {
+        type: "text",
+        text: "連携先を変更します。\n\n現在設定されている連携先は上書きされます。\n\n👇 以下のボタンから、新しい連携先を選択してください。\n\n※ 変更をやめる場合は、「キャンセル」と送信してください。"
+    };
+
+    const flexMessage = {
+        type: "flex",
+        altText: "連携先の変更",
+        contents: {
+            type: "bubble",
+            body: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                    {
+                        type: "text",
+                        text: "連携先の変更",
+                        weight: "bold",
+                        size: "xl",
+                        color: "#111111"
+                    },
+                    {
+                        type: "text",
+                        text: "新しい連携先を選択してください。",
+                        margin: "md",
+                        size: "sm",
+                        color: "#666666",
+                        wrap: true
+                    }
+                ]
+            },
+            footer: {
+                type: "box",
+                layout: "vertical",
+                spacing: "sm",
+                contents: [
+                    {
+                        type: "button",
+                        style: "primary",
+                        height: "sm",
+                        color: "#7E57C2",
+                        action: {
+                            type: "postback",
+                            label: "Obsidianに接続",
+                            data: "action=setup_obsidian",
+                            displayText: "Obsidianに接続する"
+                        }
+                    },
+                    {
+                        type: "button",
+                        style: "primary",
+                        height: "sm",
+                        color: "#26A69A",
+                        action: {
+                            type: "postback",
+                            label: "Webhookを利用",
+                            data: "action=setup_webhook",
+                            displayText: "Webhookとして利用する"
+                        }
+                    },
+                    {
+                        type: "button",
+                        style: "primary",
+                        height: "sm",
+                        color: "#444444",
+                        action: {
+                            type: "postback",
+                            label: "設定せずに利用",
+                            data: "action=setup_nothing",
+                            displayText: "設定せずに使用する"
+                        }
                     }
                 ]
             }
@@ -271,133 +464,7 @@ export async function replyWelcomeMessage(replyToken: string, accessToken: strin
     await replyFlexMessage(replyToken, "LINE Audio Summarizerへようこそ！利用モードを選択してください。", carousel, accessToken);
 }
 
-export function createModeSelectionBubble() {
-    const modes = [
-        {
-            label: "気づき・メモ",
-            sub: "Memo",
-            desc: "ふとしたアイデアを忘れないうちに記録。",
-            mode: "memo",
-            color: "#E0F7FA", // Light Cyan
-            icon: "📝"
-        },
-        {
-            label: "日記モード",
-            sub: "Diary",
-            desc: "1日の振り返りを感情とともに整理。",
-            mode: "diary",
-            color: "#F3E5F5", // Light Purple
-            icon: "📔"
-        },
-        {
-            label: "TODO抽出",
-            sub: "ToDo",
-            desc: "すべきことを明確にリスト化。",
-            mode: "todo",
-            color: "#E8F5E9", // Light Green
-            icon: "✅"
-        },
-        {
-            label: "アイデア壁打ち",
-            sub: "Brainstorm",
-            desc: "思考を構造化し、深めるための「問い」を提案。",
-            mode: "brainstorm",
-            color: "#FFF3E0", // Light Orange
-            icon: "💡"
-        }
-    ];
 
-    const modeContents = modes.map((m) => ({
-        type: "box",
-        layout: "vertical",
-        contents: [
-            {
-                type: "box",
-                layout: "horizontal",
-                contents: [
-                    {
-                        type: "text",
-                        text: m.icon,
-                        size: "lg",
-                        flex: 0,
-                        margin: "none"
-                    },
-                    {
-                        type: "text",
-                        text: m.label,
-                        weight: "bold",
-                        size: "md",
-                        flex: 1,
-                        margin: "sm",
-                        color: "#333333"
-                    },
-                    {
-                        type: "text",
-                        text: m.sub,
-                        size: "xs",
-                        color: "#999999",
-                        align: "end",
-                        gravity: "center"
-                    }
-                ],
-                alignItems: "center"
-            },
-            {
-                type: "text",
-                text: m.desc,
-                size: "xs",
-                color: "#666666",
-                wrap: true,
-                margin: "sm"
-            }
-        ],
-        paddingAll: "lg",
-        backgroundColor: m.color,
-        cornerRadius: "md",
-        action: {
-            type: "postback",
-            label: m.label,
-            data: `action=set_mode&mode=${m.mode}`,
-            displayText: `${m.label}に設定`
-        },
-        margin: "md"
-    }));
-
-    return {
-        type: "bubble",
-        body: {
-            type: "box",
-            layout: "vertical",
-            contents: [
-                {
-                    type: "text",
-                    text: "モード選択",
-                    weight: "bold",
-                    size: "xl",
-                    color: "#111111"
-                },
-                {
-                    type: "text",
-                    text: "AIの要約スタイルを選択してください。",
-                    margin: "md",
-                    size: "sm",
-                    color: "#666666",
-                    wrap: true
-                },
-                {
-                    type: "separator",
-                    margin: "lg"
-                },
-                {
-                    type: "box",
-                    layout: "vertical",
-                    contents: modeContents,
-                    margin: "lg"
-                }
-            ]
-        }
-    };
-}
 
 export async function replyPromptModeSelection(replyToken: string, accessToken: string): Promise<void> {
     const bubble = createModeSelectionBubble();

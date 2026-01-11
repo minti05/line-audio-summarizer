@@ -1,4 +1,5 @@
 import { Env } from '../types/env';
+import { PromptMode } from '../core/prompts';
 
 /**
  * User Config Interface
@@ -6,7 +7,7 @@ import { Env } from '../types/env';
 export interface UserConfig {
     line_user_id: string;
     confirm_mode: number;
-    prompt_mode: string;
+    prompt_mode: PromptMode | string; // DBからは文字列で返ってくることがあるため string も許容したいが、アプリ内では PromptMode として扱う
     custom_prompt: string | null;
 }
 
