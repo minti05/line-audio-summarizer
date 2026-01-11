@@ -94,3 +94,72 @@ export function createConfirmationBubble(summary: string, sessionId: string, lab
 
     return bubble;
 }
+
+export function createSetupCompleteBubble(title: string, description: string): any {
+    return {
+        type: "bubble",
+        body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+                {
+                    type: "text",
+                    text: "設定が完了しました ✨",
+                    weight: "bold",
+                    size: "sm",
+                    color: "#1DB446"
+                },
+                {
+                    type: "text",
+                    text: title,
+                    weight: "bold",
+                    size: "xl",
+                    margin: "sm",
+                    wrap: true,
+                    color: "#333333"
+                },
+                {
+                    type: "text",
+                    text: description,
+                    size: "sm",
+                    color: "#666666",
+                    margin: "md",
+                    wrap: true
+                },
+                {
+                    type: "separator",
+                    margin: "xl"
+                },
+                {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                        {
+                            type: "text",
+                            text: "🎙️ ボイスメッセージを送る",
+                            size: "md",
+                            weight: "bold",
+                            align: "center",
+                            color: "#333333"
+                        },
+                        {
+                            type: "text",
+                            text: "あなたの思考を声に出してください。\nAIが要約して記録・送信します。",
+                            size: "xs",
+                            color: "#888888",
+                            align: "center",
+                            margin: "sm",
+                            wrap: true,
+                            lineSpacing: "4px"
+                        }
+                    ],
+                    margin: "xl",
+                    backgroundColor: "#F7F9F7",
+                    cornerRadius: "md",
+                    paddingAll: "lg"
+                }
+            ],
+            paddingAll: "xl"
+        }
+    };
+}
