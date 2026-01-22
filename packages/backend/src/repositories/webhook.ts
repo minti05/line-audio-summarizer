@@ -1,15 +1,15 @@
 import { Database } from '../db';
-import { webhookConfigs } from '../db/schema';
+import { users, webhookSettings } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
-export type WebhookConfig = typeof webhookConfigs.$inferSelect;
+export type WebhookConfig = typeof webhookSettings.$inferSelect;
 
 /**
  * Get Webhook Config
  */
-export async function getWebhookConfig(db: Database, lineUserId: string) {
-    return await db.query.webhookConfigs.findFirst({
-        where: eq(webhookConfigs.lineUserId, lineUserId),
+export async function getWebhookConfig(db: Database, userId: string) {
+    return await db.query.webhookSettings.findFirst({
+        where: eq(webhookSettings.userId, userId),
     });
 }
 
@@ -23,15 +23,26 @@ export async function upsertWebhookConfig(db: Database, config: {
     config?: string | null;
 }) {
     const now = Math.floor(Date.now() / 1000);
+    const userId = config.lineUserId;
 
-    await db.insert(webhookConfigs).values({
-        lineUserId: config.lineUserId,
+    // Ensure user exists
+    await db.insert(users).values({
+        id: userId,
+        status: 'active',
+        updatedAt: now,
+    }).onConflictDoUpdate({
+        target: users.id,
+        set: { updatedAt: now }
+    });
+
+    await db.insert(webhookSettings).values({
+        userId: userId,
         webhookUrl: config.webhookUrl,
         secretToken: config.secretToken,
         config: config.config,
         updatedAt: now,
     }).onConflictDoUpdate({
-        target: webhookConfigs.lineUserId,
+        target: webhookSettings.userId,
         set: {
             webhookUrl: config.webhookUrl,
             secretToken: config.secretToken,
@@ -44,6 +55,6 @@ export async function upsertWebhookConfig(db: Database, config: {
 /**
  * Delete Webhook Config
  */
-export async function deleteWebhookConfig(db: Database, lineUserId: string) {
-    await db.delete(webhookConfigs).where(eq(webhookConfigs.lineUserId, lineUserId));
+export async function deleteWebhookConfig(db: Database, userId: string) {
+    await db.delete(webhookSettings).where(eq(webhookSettings.userId, userId));
 }

@@ -1,5 +1,5 @@
 import { Database } from '../db';
-import { inbox } from '../db/schema';
+import { users, inbox } from '../db/schema';
 import { eq, asc } from 'drizzle-orm';
 
 export type InboxItem = typeof inbox.$inferSelect;
@@ -13,8 +13,21 @@ export async function addToInbox(db: Database, data: {
     iv: string;
     encryptedKey: string;
 }) {
+    const now = Math.floor(Date.now() / 1000);
+    const userId = data.lineUserId;
+
+    // Ensure user exists
+    await db.insert(users).values({
+        id: userId,
+        status: 'active',
+        updatedAt: now,
+    }).onConflictDoUpdate({
+        target: users.id,
+        set: { updatedAt: now }
+    });
+
     await db.insert(inbox).values({
-        lineUserId: data.lineUserId,
+        userId: userId,
         encryptedData: data.encryptedData,
         iv: data.iv,
         encryptedKey: data.encryptedKey,
@@ -24,9 +37,9 @@ export async function addToInbox(db: Database, data: {
 /**
  * Get Inbox Items
  */
-export async function getInboxItems(db: Database, lineUserId: string) {
+export async function getInboxItems(db: Database, userId: string) {
     return await db.query.inbox.findMany({
-        where: eq(inbox.lineUserId, lineUserId),
+        where: eq(inbox.userId, userId),
         orderBy: [asc(inbox.createdAt)],
     });
 }

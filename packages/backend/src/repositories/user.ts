@@ -1,39 +1,50 @@
 import { Database } from '../db';
-import { userConfigs, publicKeys } from '../db/schema';
+import { users, userSettings, userKeys } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
-import { PromptMode } from '../core/prompts';
 
-export type UserConfig = typeof userConfigs.$inferSelect;
-export type PublicKey = typeof publicKeys.$inferSelect;
+export type UserConfig = typeof userSettings.$inferSelect;
+export type PublicKey = typeof userKeys.$inferSelect;
 
 /**
  * Get User Config
  */
-export async function getUserConfig(db: Database, lineUserId: string) {
-    return await db.query.userConfigs.findFirst({
-        where: eq(userConfigs.lineUserId, lineUserId),
+export async function getUserConfig(db: Database, userId: string) {
+    return await db.query.userSettings.findFirst({
+        where: eq(userSettings.userId, userId),
     });
 }
 
 /**
  * Upsert User Config
+ * Ensure user exists in 'users' table before upserting settings
  */
 export async function upsertUserConfig(db: Database, config: {
-    lineUserId: string;
+    lineUserId: string; // Maintain interface compatibility
     confirmMode?: number;
     promptMode?: string;
     customPrompt?: string | null;
 }) {
     const now = Math.floor(Date.now() / 1000);
+    const userId = config.lineUserId;
     
-    await db.insert(userConfigs).values({
-        lineUserId: config.lineUserId,
+    // Ensure user exists
+    await db.insert(users).values({
+        id: userId,
+        status: 'active',
+        updatedAt: now,
+    }).onConflictDoUpdate({
+        target: users.id,
+        set: { updatedAt: now }
+    });
+    
+    await db.insert(userSettings).values({
+        userId: userId,
         confirmMode: config.confirmMode,
         promptMode: config.promptMode,
         customPrompt: config.customPrompt,
         updatedAt: now,
     }).onConflictDoUpdate({
-        target: userConfigs.lineUserId,
+        target: userSettings.userId,
         set: {
             confirmMode: config.confirmMode,
             promptMode: config.promptMode,
@@ -44,18 +55,19 @@ export async function upsertUserConfig(db: Database, config: {
 }
 
 /**
- * Delete User Config
+ * Delete User Config (and User)
+ * Deleting the user from 'users' table will cascade delete settings, keys, and inbox.
  */
-export async function deleteUserConfig(db: Database, lineUserId: string) {
-    await db.delete(userConfigs).where(eq(userConfigs.lineUserId, lineUserId));
+export async function deleteUserConfig(db: Database, userId: string) {
+    await db.delete(users).where(eq(users.id, userId));
 }
 
 /**
  * Get Public Key
  */
-export async function getPublicKey(db: Database, lineUserId: string) {
-    const result = await db.query.publicKeys.findFirst({
-        where: eq(publicKeys.lineUserId, lineUserId),
+export async function getPublicKey(db: Database, userId: string) {
+    const result = await db.query.userKeys.findFirst({
+        where: eq(userKeys.userId, userId),
         columns: {
             publicKeyPem: true
         }
@@ -66,15 +78,25 @@ export async function getPublicKey(db: Database, lineUserId: string) {
 /**
  * Upsert Public Key
  */
-export async function upsertPublicKey(db: Database, lineUserId: string, publicKeyPem: string) {
+export async function upsertPublicKey(db: Database, userId: string, publicKeyPem: string) {
     const now = Math.floor(Date.now() / 1000);
 
-    await db.insert(publicKeys).values({
-        lineUserId,
+    // Ensure user exists
+    await db.insert(users).values({
+        id: userId,
+        status: 'active',
+        updatedAt: now,
+    }).onConflictDoUpdate({
+        target: users.id,
+        set: { updatedAt: now }
+    });
+
+    await db.insert(userKeys).values({
+        userId,
         publicKeyPem,
         updatedAt: now,
     }).onConflictDoUpdate({
-        target: publicKeys.lineUserId,
+        target: userKeys.userId,
         set: {
             publicKeyPem,
             updatedAt: now,
@@ -85,6 +107,6 @@ export async function upsertPublicKey(db: Database, lineUserId: string, publicKe
 /**
  * Delete Public Key
  */
-export async function deletePublicKey(db: Database, lineUserId: string) {
-    await db.delete(publicKeys).where(eq(publicKeys.lineUserId, lineUserId));
+export async function deletePublicKey(db: Database, userId: string) {
+    await db.delete(userKeys).where(eq(userKeys.userId, userId));
 }
