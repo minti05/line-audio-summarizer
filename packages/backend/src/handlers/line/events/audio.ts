@@ -8,7 +8,7 @@ import { getWebhookConfig } from '../../../services/database/webhook-config';
 import { encryptWithPublicKey } from '../../../core/crypto';
 import { setTempState } from '../../../utils/kv';
 import { sendToWebhook } from '../../../services/integration/outgoing';
-import { createConfirmationBubble, IntegrationType } from '../../../ui/flex';
+import { createConfirmationBubble, IntegrationType } from '../../../constants/messages/flex';
 import { COMMON_MESSAGES } from '../../../constants/messages/common';
 import { HELP_MESSAGES } from '../../../constants/messages/help';
 import { ERROR_MESSAGES } from '../../../constants/messages/error';

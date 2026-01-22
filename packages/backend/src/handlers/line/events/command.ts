@@ -5,14 +5,14 @@ import { replyMessage } from '../../../clients/line';
 // 今回の計画では ui/flex.ts に hasChangeTargetBubble はあるが、replyロジックは setup.ts に移動していない（まだ作っていない）。
 // 計画における setup.ts は handleSetupMode を持つ。
 // ここでは ui/flex.ts を使って新しく関数を作るか、既存を呼び出す。
-import { createChangeTargetBubble, createSetupCompleteBubble } from '../../../ui/flex';
+import { createChangeTargetBubble, createSetupCompleteBubble } from '../../../constants/messages/flex';
 import { replyFlexMessage } from '../../../clients/line';
 import { setTempState, getTempState } from '../../../utils/kv';
 
 import { getUserConfig, getPublicKey, upsertUserConfig } from '../../../services/database/user';
 import { getWebhookConfig } from '../../../services/database/webhook-config';
 import { PromptMode, PROMPT_MODE_DETAILS } from '../../../core/prompts';
-import { askForModeSelection } from '../flows/setup';
+import { askForModeSelection } from './setup';
 import { COMMON_MESSAGES, STATUS_MESSAGE_TEMPLATE } from '../../../constants/messages/common';
 import { HELP_MESSAGES } from '../../../constants/messages/help';
 

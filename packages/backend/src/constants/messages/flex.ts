@@ -1,4 +1,4 @@
-import { PromptMode, PROMPT_MODE_DETAILS } from '../core/prompts';
+import { PromptMode, PROMPT_MODE_DETAILS } from '../../core/prompts';
 
 export type IntegrationType = 'obsidian' | 'webhook' | 'none';
 

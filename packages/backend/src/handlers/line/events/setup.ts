@@ -4,7 +4,7 @@ import { setTempState } from '../../../utils/kv';
 import { getPublicKey, upsertUserConfig } from '../../../services/database/user';
 import { upsertWebhookConfig } from '../../../services/database/webhook-config';
 import { PromptMode } from '../../../core/prompts';
-import { createInitialSetupBubble, createModeSelectionBubble, IntegrationType } from '../../../ui/flex';
+import { createInitialSetupBubble, createModeSelectionBubble, IntegrationType } from '../../../constants/messages/flex';
 import { getWebhookConfig } from '../../../services/database/webhook-config';
 import { HELP_MESSAGES } from '../../../constants/messages/help';
 import { ERROR_MESSAGES } from '../../../constants/messages/error';

@@ -8,7 +8,7 @@ import { getTempState } from '../../utils/kv';
 import { handleFollowEvent, handleUnfollowEvent } from './events/subscription';
 import { handleMessageEvent } from './events/message';
 import { handlePostbackEvent } from './events/postback';
-import { handleSetupMode, determineIntegrationType } from './flows/setup';
+import { handleSetupMode, determineIntegrationType } from './events/setup';
 
 export async function webhookHandler(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (request.method !== 'POST') {

@@ -1,6 +1,6 @@
 import { Env } from '../../../types/env';
 import { replyFlexMessage } from '../../../clients/line';
-import { createWelcomeBubble, createModeSelectionBubble, createInitialSetupBubble } from '../../../ui/flex';
+import { createWelcomeBubble, createModeSelectionBubble, createInitialSetupBubble } from '../../../constants/messages/flex';
 import { HELP_MESSAGES } from '../../../constants/messages/help';
 
 /**

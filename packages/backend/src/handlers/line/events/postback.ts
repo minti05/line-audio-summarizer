@@ -7,7 +7,7 @@ import { getWebhookConfig } from '../../../services/database/webhook-config';
 import { encryptWithPublicKey } from '../../../core/crypto';
 import { sendToWebhook } from '../../../services/integration/outgoing';
 import { PromptMode, PROMPT_MODE_DETAILS } from '../../../core/prompts';
-import { createSetupCompleteBubble } from '../../../ui/flex';
+import { createSetupCompleteBubble } from '../../../constants/messages/flex';
 import { COMMON_MESSAGES } from '../../../constants/messages/common';
 import { ERROR_MESSAGES } from '../../../constants/messages/error';
 import { HELP_MESSAGES } from '../../../constants/messages/help';
