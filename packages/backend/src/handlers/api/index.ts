@@ -1,5 +1,6 @@
-import { Env } from '../types/env';
-import { upsertUserConfig, upsertPublicKey, getInboxItems, deleteInboxItem } from '../services/db';
+import { Env } from '../../types/env';
+import { upsertUserConfig, upsertPublicKey } from '../../services/database/user';
+import { getInboxItems, deleteInboxItem } from '../../services/database/inbox';
 
 export async function apiHandler(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);

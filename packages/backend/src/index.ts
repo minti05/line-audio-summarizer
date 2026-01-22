@@ -1,6 +1,6 @@
 import { Env } from './types/env';
-import { webhookHandler } from './handlers/webhook';
-import { apiHandler } from './handlers/api';
+import { webhookHandler } from './handlers/line/index';
+import { apiHandler } from './handlers/api/index';
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
