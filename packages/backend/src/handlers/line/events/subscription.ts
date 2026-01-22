@@ -1,5 +1,8 @@
 import { Env } from '../../../types/env';
 import { replyFlexMessage } from '../../../clients/line';
+import { Database } from '../../../db';
+import { deleteUserConfig, deletePublicKey } from '../../../repositories/user';
+import { deleteWebhookConfig } from '../../../repositories/webhook';
 import { createWelcomeBubble, createModeSelectionBubble, createInitialSetupBubble } from '../../../constants/messages/flex';
 import { HELP_MESSAGES } from '../../../constants/messages/help';
 
@@ -27,7 +30,7 @@ export async function handleFollowEvent(event: any, env: Env): Promise<void> {
  * ブロック（Unfollow）イベントハンドラ
  * ユーザーに関連するデータを削除（クリーンアップ）します。
  */
-export async function handleUnfollowEvent(event: any, env: Env): Promise<void> {
+export async function handleUnfollowEvent(event: any, env: Env, db: Database): Promise<void> {
     const userId = event.source.userId;
     console.log(`User ${userId} unfollowed. Cleaning up data.`);
 
@@ -36,7 +39,7 @@ export async function handleUnfollowEvent(event: any, env: Env): Promise<void> {
     await env.LINE_AUDIO_KV.delete(`prompt_setting_state:${userId}`);
 
     // DBのデータ削除
-    await env.DB.prepare('DELETE FROM PublicKeys WHERE line_user_id = ?').bind(userId).run();
-    await env.DB.prepare('DELETE FROM WebhookConfigs WHERE line_user_id = ?').bind(userId).run();
-    await env.DB.prepare('DELETE FROM UserConfigs WHERE line_user_id = ?').bind(userId).run();
+    await deletePublicKey(db, userId);
+    await deleteWebhookConfig(db, userId);
+    await deleteUserConfig(db, userId);
 }

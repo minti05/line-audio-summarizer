@@ -1,9 +1,10 @@
 import { Env } from '../../../types/env';
+import { Database } from '../../../db';
 import { replyMessage, replyFlexMessage } from '../../../clients/line';
 import { getTempState } from '../../../utils/kv';
-import { getUserConfig, upsertUserConfig, getPublicKey } from '../../../services/database/user'; // Note: getTicket might not exist, checking imports. Using addToInbox directly in save logic.
-import { addToInbox } from '../../../services/database/inbox';
-import { getWebhookConfig } from '../../../services/database/webhook-config';
+import { getUserConfig, upsertUserConfig, getPublicKey } from '../../../repositories/user';
+import { addToInbox } from '../../../repositories/inbox';
+import { getWebhookConfig } from '../../../repositories/webhook';
 import { encryptWithPublicKey } from '../../../core/crypto';
 import { sendToWebhook } from '../../../services/integration/outgoing';
 import { PromptMode, PROMPT_MODE_DETAILS } from '../../../core/prompts';
@@ -16,7 +17,7 @@ import { HELP_MESSAGES } from '../../../constants/messages/help';
  * Postbackイベントハンドラ
  * ボタンアクションに応じた処理を実行します。
  */
-export async function handlePostbackEvent(event: any, env: Env): Promise<void> {
+export async function handlePostbackEvent(event: any, env: Env, db: Database): Promise<void> {
     const replyToken = event.replyToken;
     const userId = event.source.userId;
     const params = new URLSearchParams(event.postback.data);
@@ -33,7 +34,7 @@ export async function handlePostbackEvent(event: any, env: Env): Promise<void> {
             return;
         }
 
-        await saveToInbox(env, userId, summary, replyToken);
+        await saveToInbox(env, db, userId, summary, replyToken);
         // セッション削除
         await env.LINE_AUDIO_KV.delete(`session:${sessionId}`);
         return;
@@ -62,12 +63,12 @@ export async function handlePostbackEvent(event: any, env: Env): Promise<void> {
         const mode = params.get('mode') as PromptMode;
         // 有効なモードか確認
         if (mode in PROMPT_MODE_DETAILS) {
-            const userConfig = await getUserConfig(env.DB, userId);
-            await upsertUserConfig(env.DB, {
-                line_user_id: userId,
-                confirm_mode: userConfig?.confirm_mode ?? 1,
-                prompt_mode: mode,
-                custom_prompt: userConfig?.custom_prompt || null
+            const userConfig = await getUserConfig(db, userId);
+            await upsertUserConfig(db, {
+                lineUserId: userId,
+                confirmMode: userConfig?.confirmMode ?? 1,
+                promptMode: mode,
+                customPrompt: userConfig?.customPrompt || null
             });
             
             // 状態をクリア
@@ -83,12 +84,12 @@ export async function handlePostbackEvent(event: any, env: Env): Promise<void> {
 /**
  * 要約をInbox（DB/Webhook）に保存するヘルパー関数
  */
-async function saveToInbox(env: Env, userId: string, summary: string, replyToken: string) {
+async function saveToInbox(env: Env, db: Database, userId: string, summary: string, replyToken: string) {
     // 1. Webhook送信 (設定されていれば)
     try {
-        const webhookConfig = await getWebhookConfig(env.DB, userId);
-        if (webhookConfig && webhookConfig.webhook_url) {
-            await sendToWebhook(webhookConfig.webhook_url, {
+        const webhookConfig = await getWebhookConfig(db, userId);
+        if (webhookConfig && webhookConfig.webhookUrl) {
+            await sendToWebhook(webhookConfig.webhookUrl, {
                 event: 'summary_generated',
                 userId: userId,
                 summary: summary,
@@ -100,25 +101,21 @@ async function saveToInbox(env: Env, userId: string, summary: string, replyToken
     }
     
     // 2. Obsidian Inbox保存 (公開鍵があれば)
-    const publicKeyPem = await getPublicKey(env.DB, userId);
+    const publicKeyPem = await getPublicKey(db, userId);
     
     if (publicKeyPem) {
         const encrypted = await encryptWithPublicKey(summary, publicKeyPem);
-        await addToInbox(env.DB, userId, encrypted.encryptedData, encrypted.iv, encrypted.encryptedKey);
+        await addToInbox(db, {
+            lineUserId: userId,
+            encryptedData: encrypted.encryptedData,
+            iv: encrypted.iv,
+            encryptedKey: encrypted.encryptedKey
+        });
         await replyMessage(replyToken, COMMON_MESSAGES.SAVED_TO_INBOX, env.LINE_CHANNEL_ACCESS_TOKEN);
     } else {
-        // Obsidianキーがなく、Webhookも送られていない場合は警告
-        // ただしWebhookのみ利用のケースもあるため、WebhookConfig取得済みかどうかで分岐判定済みか考慮が必要
-        // 現状は「公開鍵がない＝Obsidian連携していない」場合のメッセージを表示
-        // もしWebhookのみユーザーならこのメッセージは不要かもしれないが、
-        // 「保存」ボタンを押した文脈では「どこかに保存された」フィードバックが必要。
-        // Webhook送信成功ならそれでOK、失敗ならエラーなど。
-        // ここではシンプルにObsidian連携がない場合のみメッセージを出す（既存ロジック踏襲）
-        // 既存ロジックでは公開鍵がないとエラーを出していた。
-        
         // 修正: Webhookがあればエラーにしない
-        const webhookConfig = await getWebhookConfig(env.DB, userId);
-        if (!webhookConfig?.webhook_url) { 
+        const webhookConfig = await getWebhookConfig(db, userId);
+        if (!webhookConfig?.webhookUrl) { 
              await replyMessage(replyToken, ERROR_MESSAGES.PUBLIC_KEY_NOT_FOUND, env.LINE_CHANNEL_ACCESS_TOKEN);
         } else {
              // Webhookのみの場合の成功メッセージ

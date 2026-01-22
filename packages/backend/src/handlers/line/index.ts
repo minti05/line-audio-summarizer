@@ -1,7 +1,8 @@
 import { Env } from '../../types/env';
+import { createDb } from '../../db';
 import { validateSignature } from '../../core/security';
 import { pushMessage } from '../../clients/line';
-import { getUserConfig } from '../../services/database/user';
+import { getUserConfig } from '../../repositories/user';
 import { getTempState } from '../../utils/kv';
 
 // Handlers
@@ -11,6 +12,8 @@ import { handlePostbackEvent } from './events/postback';
 import { handleSetupMode, determineIntegrationType } from './events/setup';
 
 export async function webhookHandler(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const db = createDb(env.DB);
+
     if (request.method !== 'POST') {
         return new Response('Method Not Allowed', { status: 405 });
     }
@@ -44,30 +47,31 @@ export async function webhookHandler(request: Request, env: Env, ctx: ExecutionC
                     }
 
                     if (event.type === 'unfollow') {
-                        await handleUnfollowEvent(event, env);
+                        await handleUnfollowEvent(event, env, db);
                         return;
                     }
 
                     // 2. Setup Status Check
                     // 連携が完了しているか、または「連携なし」設定があるか確認
-                    const integrationType = await determineIntegrationType(env.DB, userId);
-                    const userConfig = await getUserConfig(env.DB, userId);
+                    const integrationType = await determineIntegrationType(db, userId);
+                    const userConfig = await getUserConfig(db, userId);
 
                     // Setup is done if integration is enabled OR user config exists (manual skip / "none" setting)
                     const isSetupDone = integrationType !== 'none' || !!userConfig;
                     const setupState = await getTempState<string>(env.LINE_AUDIO_KV, `setup_state:${userId}`);
 
+
                     // セットアップ未完了、またはセットアップ中の場合
                     if (!isSetupDone || setupState) {
-                        await handleSetupMode(event, env, userId, setupState);
+                        await handleSetupMode(event, env, db, userId, setupState);
                         return;
                     }
 
                     // 3. Normal Operation
                     if (event.type === 'message') {
-                        await handleMessageEvent(event, env, userId);
+                        await handleMessageEvent(event, env, db, userId);
                     } else if (event.type === 'postback') {
-                        await handlePostbackEvent(event, env);
+                        await handlePostbackEvent(event, env, db);
                     }
 
                 } catch (err: any) {

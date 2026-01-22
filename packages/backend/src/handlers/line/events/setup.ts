@@ -1,11 +1,11 @@
 import { Env } from '../../../types/env';
+import { Database } from '../../../db';
 import { replyMessages, replyMessage } from '../../../clients/line';
 import { setTempState } from '../../../utils/kv';
-import { getPublicKey, upsertUserConfig } from '../../../services/database/user';
-import { upsertWebhookConfig } from '../../../services/database/webhook-config';
+import { getPublicKey, upsertUserConfig, deletePublicKey } from '../../../repositories/user';
+import { upsertWebhookConfig, getWebhookConfig, deleteWebhookConfig } from '../../../repositories/webhook';
 import { PromptMode } from '../../../core/prompts';
 import { createInitialSetupBubble, createModeSelectionBubble, IntegrationType } from '../../../constants/messages/flex';
-import { getWebhookConfig } from '../../../services/database/webhook-config';
 import { HELP_MESSAGES } from '../../../constants/messages/help';
 import { ERROR_MESSAGES } from '../../../constants/messages/error';
 import { COMMON_MESSAGES } from '../../../constants/messages/common';
@@ -14,10 +14,11 @@ import { COMMON_MESSAGES } from '../../../constants/messages/common';
  * セットアップ中のユーザーインタラクションを処理します。
  * @param event LINEイベントオブジェクト
  * @param env 環境変数
+ * @param db Database
  * @param userId ユーザーID
  * @param currentState 現在のセットアップ状態
  */
-export async function handleSetupMode(event: any, env: Env, userId: string, currentState: any): Promise<void> {
+export async function handleSetupMode(event: any, env: Env, db: Database, userId: string, currentState: any): Promise<void> {
     const replyToken = event.replyToken;
     const accessToken = env.LINE_CHANNEL_ACCESS_TOKEN;
 
@@ -36,15 +37,15 @@ export async function handleSetupMode(event: any, env: Env, userId: string, curr
             await env.LINE_AUDIO_KV.delete(`setup_state:${userId}`);
 
             // 既存の設定をクリア（連携なしを選択したため）
-            await env.DB.prepare('DELETE FROM PublicKeys WHERE line_user_id = ?').bind(userId).run();
-            await env.DB.prepare('DELETE FROM WebhookConfigs WHERE line_user_id = ?').bind(userId).run();
+            await deletePublicKey(db, userId);
+            await deleteWebhookConfig(db, userId);
 
             // 設定なし利用として記録
-            await upsertUserConfig(env.DB, {
-                line_user_id: userId,
-                confirm_mode: 1,
-                prompt_mode: PromptMode.Memo,
-                custom_prompt: null
+            await upsertUserConfig(db, {
+                lineUserId: userId,
+                confirmMode: 1,
+                promptMode: PromptMode.Memo,
+                customPrompt: null
             });
 
             await askForModeSelection(env, userId, replyToken, [
@@ -69,7 +70,7 @@ export async function handleSetupMode(event: any, env: Env, userId: string, curr
         }
 
         if (currentState === 'waiting_for_obsidian') {
-            const hasKey = await getPublicKey(env.DB, userId);
+            const hasKey = await getPublicKey(db, userId);
             if (hasKey) {
                 await env.LINE_AUDIO_KV.delete(`setup_state:${userId}`);
                 await askForModeSelection(env, userId, replyToken, [
@@ -80,7 +81,7 @@ export async function handleSetupMode(event: any, env: Env, userId: string, curr
             }
         } else if (currentState === 'waiting_for_webhook') {
             if (text.startsWith('https://')) {
-                await upsertWebhookConfig(env.DB, { line_user_id: userId, webhook_url: text, secret_token: null, config: null });
+                await upsertWebhookConfig(db, { lineUserId: userId, webhookUrl: text, secretToken: null, config: null });
                 await env.LINE_AUDIO_KV.delete(`setup_state:${userId}`);
                 await askForModeSelection(env, userId, replyToken, [
                     { type: 'text', text: HELP_MESSAGES.WEBHOOK_LINKED }
@@ -136,14 +137,14 @@ export async function replyInitialSetupMessages(replyToken: string, accessToken:
 /**
  * 連携タイプを判定するヘルパー関数
  */
-export async function determineIntegrationType(db: D1Database, userId: string): Promise<IntegrationType> {
+export async function determineIntegrationType(db: Database, userId: string): Promise<IntegrationType> {
     const hasPubKey = await getPublicKey(db, userId);
     if (hasPubKey) {
         return 'obsidian';
     }
 
     const webhookConf = await getWebhookConfig(db, userId);
-    if (webhookConf && webhookConf.webhook_url) {
+    if (webhookConf && webhookConf.webhookUrl) {
         return 'webhook';
     }
 
