@@ -17,25 +17,90 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 		containerEl.createEl('h2', { text: 'LINE Audio Summarizer 設定' });
 
 		new Setting(containerEl)
-			.setName('LINE User ID')
-			.setDesc('LINE Bot で /id を送信して取得したIDを入力してください。')
+			.setName('保存先フォルダ')
+			.setDesc('メモを保存するルートフォルダのパス (例: VoiceSummaries)。デイリーノートと同じフォルダを指定し、ファイル名形式を一致させることで、デイリーノートに直接追記することも可能です。')
 			.addText(text => text
-				.setPlaceholder('Uxxxxxxxx...')
-				.setValue(this.plugin.settings.lineUserId)
+				.setPlaceholder('VoiceSummaries')
+				.setValue(this.plugin.settings.rootFolder)
 				.onChange(async (value) => {
-					this.plugin.settings.lineUserId = value;
+					this.plugin.settings.rootFolder = value;
 					await this.plugin.saveSettings();
 				}));
 
 		new Setting(containerEl)
-			.setName('テンプレートファイルパス')
-			.setDesc('要約メモの作成に使用するテンプレートファイルのパス。空白の場合はデフォルト設定を使用します。(例: Templates/SummaryTemplate.md)')
-			.addText(text => text
-				.setPlaceholder('Templates/template.md')
-				.setValue(this.plugin.settings.templatePath)
+			.setName('デイリーノートモード')
+			.setDesc('ONの場合、1日1つのファイルに追記します。OFFの場合、メッセージ毎にファイルを作成します。')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.useDailyNote)
 				.onChange(async (value) => {
-					this.plugin.settings.templatePath = value;
+					this.plugin.settings.useDailyNote = value;
 					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('日付フォーマット (ファイル名)')
+			.setDesc('デイリーノートのファイル名に使用する日付フォーマット (例: YYYY-MM-DD)')
+			.addText(text => text
+				.setPlaceholder('YYYY-MM-DD')
+				.setValue(this.plugin.settings.dailyNoteDateFormat)
+				.onChange(async (value) => {
+					this.plugin.settings.dailyNoteDateFormat = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('メッセージテンプレート')
+			.setDesc('追記されるメッセージのフォーマット。{{time}}, {{summary}} が使用可能です。')
+			.addTextArea(text => text
+				.setPlaceholder('\\n## {{time}}\\n{{summary}}')
+				.setValue(this.plugin.settings.messageTemplate)
+				.onChange(async (value) => {
+					this.plugin.settings.messageTemplate = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// Auto Sync Settings
+		containerEl.createEl('h3', { text: '自動同期設定' });
+
+		new Setting(containerEl)
+			.setName('起動時に同期')
+			.setDesc('Obsidianの起動時に自動的に同期を実行します。')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.syncOnStartup)
+				.onChange(async (value) => {
+					this.plugin.settings.syncOnStartup = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('自動同期')
+			.setDesc('一定間隔でバックグラウンド同期を実行します。')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.autoSync)
+				.onChange(async (value) => {
+					this.plugin.settings.autoSync = value;
+					await this.plugin.saveSettings();
+					
+					// Apply setting change immediately
+					this.plugin.configureAutoSync();
+				}));
+
+		new Setting(containerEl)
+			.setName('同期間隔 (時間)')
+			.setDesc('自動同期を実行する間隔 (時間単位)。')
+			.addDropdown(dropdown => dropdown
+				.addOption('1', '1時間')
+				.addOption('2', '2時間')
+				.addOption('3', '3時間')
+				.addOption('4', '4時間')
+				.addOption('5', '5時間')
+				.setValue(String(this.plugin.settings.syncInterval))
+				.onChange(async (value) => {
+					this.plugin.settings.syncInterval = parseInt(value);
+					await this.plugin.saveSettings();
+					
+					// Apply setting change immediately
+					this.plugin.configureAutoSync();
 				}));
 
 		// Key Management Section
