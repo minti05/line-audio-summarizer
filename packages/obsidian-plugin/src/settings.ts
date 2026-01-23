@@ -14,7 +14,7 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'LINE Audio Summarizer 設定' });
+		new Setting(containerEl).setName('LINE Audio Summarizer 設定').setHeading();
 
 		new Setting(containerEl)
 			.setName('保存先フォルダ')
@@ -60,7 +60,7 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 				}));
 
 		// Auto Sync Settings
-		containerEl.createEl('h3', { text: '自動同期設定' });
+		new Setting(containerEl).setName('自動同期設定').setHeading();
 
 		new Setting(containerEl)
 			.setName('起動時に同期')
@@ -104,7 +104,7 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 				}));
 
 		// Key Management Section
-		containerEl.createEl('h3', { text: 'セットアップ' });
+		new Setting(containerEl).setName('セットアップ').setHeading();
 
 		const keyStatusDiv = containerEl.createDiv();
 		this.updateKeyStatus(keyStatusDiv);

@@ -58,7 +58,7 @@ export default class LineAudioSummarizerPlugin extends Plugin {
 
 		// Auto Sync Initialization
 		if (this.settings.syncOnStartup) {
-			this.syncManager.syncMessages();
+			void this.syncManager.syncMessages();
 		}
 		this.configureAutoSync();
 	}
@@ -79,7 +79,7 @@ export default class LineAudioSummarizerPlugin extends Plugin {
 			const hours = this.settings.syncInterval;
 			if (hours > 0) {
 				this.syncIntervalId = window.setInterval(() => {
-					this.syncManager.syncMessages();
+					void this.syncManager.syncMessages();
 				}, hours * 60 * 60 * 1000);
 				this.registerInterval(this.syncIntervalId);
 			}
@@ -87,7 +87,7 @@ export default class LineAudioSummarizerPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData()) as LineAudioSummarizerSettings;
 		if (!this.settings.vaultId) {
 			this.settings.vaultId = crypto.randomUUID();
 			await this.saveSettings();

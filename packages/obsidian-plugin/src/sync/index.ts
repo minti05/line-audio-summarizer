@@ -31,13 +31,13 @@ export class SyncManager {
             for (const msg of messages) {
                 try {
                     const decryptedText = await this.cryptoManager.decryptMessage(
-                        msg.encrypted_key,
+                        msg.encryptedKey,
                         msg.iv,
-                        msg.encrypted_data
+                        msg.encryptedData
                     );
 
                     // 3. ファイルへの保存
-                    await this.saveToFile(decryptedText, msg.created_at);
+                    await this.saveToFile(decryptedText, msg.createdAt);
                     savedCount++;
                 } catch (err) {
                     console.error('Decryption failed for message:', msg.id, err);
@@ -49,9 +49,10 @@ export class SyncManager {
                 new Notice(`${savedCount} 件のメモを保存しました！`);
             }
 
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('Sync failed:', e);
-            new Notice(`同期に失敗しました: ${e.message}`);
+            const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+            new Notice(`同期に失敗しました: ${errorMessage}`);
         }
     }
 

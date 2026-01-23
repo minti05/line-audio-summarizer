@@ -1,7 +1,17 @@
-import { requestUrl, RequestUrlParam } from 'obsidian';
+import { requestUrl } from 'obsidian';
 
 // Update this with your actual Worker URL
 const DEFAULT_BACKEND_URL = 'https://line-audio-summarizer-backend.line-audio-summarizer-aoi.workers.dev';
+
+export interface InboxMessage {
+    id: number;
+    // userId is not strictly needed for client logic but is in the response
+    userId: string;
+    encryptedData: string;
+    iv: string;
+    encryptedKey: string;
+    createdAt: number;
+}
 
 export class ApiClient {
     private backendUrl: string;
@@ -40,7 +50,9 @@ export class ApiClient {
         }
     }
 
-    async fetchInbox(vaultId: string): Promise<any[]> {
+
+
+    async fetchInbox(vaultId: string): Promise<InboxMessage[]> {
         const response = await requestUrl({
             url: `${this.backendUrl}/api/inbox?vaultId=${vaultId}`,
             method: 'GET',
@@ -51,7 +63,7 @@ export class ApiClient {
             throw new Error(`Inboxの取得に失敗しました: ${response.text}`);
         }
 
-        const data = response.json;
+        const data = response.json as { messages: InboxMessage[] };
         return data.messages || [];
     }
 }
