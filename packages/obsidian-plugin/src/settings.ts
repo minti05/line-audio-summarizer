@@ -1,3 +1,4 @@
+/* eslint-disable obsidianmd/ui/sentence-case */
 import { App, PluginSettingTab, Setting, Modal } from 'obsidian';
 import LineAudioSummarizerPlugin from './main';
 
@@ -14,7 +15,7 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl).setName('LINE Audio Summarizer 設定').setHeading();
+		new Setting(containerEl).setName('基本設定').setHeading();
 
 		new Setting(containerEl)
 			.setName('保存先フォルダ')
@@ -147,9 +148,10 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 						new NoticeModal(this.app, '成功', 'デバイスの登録と鍵の生成が完了しました！\nこれで設定は完了です。').open();
 						this.updateKeyStatus(keyStatusDiv);
 
-					} catch (e: any) {
+					} catch (e: unknown) {
 						console.error(e);
-						new NoticeModal(this.app, 'エラー', `登録に失敗しました: ${e.message}`).open();
+						const errorMessage = e instanceof Error ? e.message : String(e);
+						new NoticeModal(this.app, 'エラー', `登録に失敗しました: ${errorMessage}`).open();
 					} finally {
 						button.setButtonText('鍵を生成して登録').setDisabled(false);
 					}
@@ -163,9 +165,7 @@ export class LineAudioSummarizerSettingTab extends PluginSettingTab {
 		el.createEl('p', { text: statusText, cls: hasKeys ? 'line-audio-success' : 'line-audio-warning' });
 
 		// Small style injection for status
-		el.style.marginBottom = '1em';
-		if (hasKeys) el.style.color = 'var(--text-success)';
-		else el.style.color = 'var(--text-warning)';
+		el.setAttribute('style', `margin-bottom: 1em; color: ${hasKeys ? 'var(--text-success)' : 'var(--text-warning)'}`);
 	}
 }
 
