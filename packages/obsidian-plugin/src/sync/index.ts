@@ -31,13 +31,13 @@ export class SyncManager {
             for (const msg of messages) {
                 try {
                     const decryptedText = await this.cryptoManager.decryptMessage(
-                        msg.encrypted_key,
+                        msg.encryptedKey,
                         msg.iv,
-                        msg.encrypted_data
+                        msg.encryptedData
                     );
 
                     // 3. ファイルへの保存
-                    await this.saveToFile(decryptedText, msg.created_at);
+                    await this.saveToFile(decryptedText, msg.createdAt);
                     savedCount++;
                 } catch (err) {
                     console.error('Decryption failed for message:', msg.id, err);
@@ -49,51 +49,56 @@ export class SyncManager {
                 new Notice(`${savedCount} 件のメモを保存しました！`);
             }
 
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('Sync failed:', e);
-            new Notice(`同期に失敗しました: ${e.message}`);
+            const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+            new Notice(`同期に失敗しました: ${errorMessage}`);
         }
     }
 
     private async saveToFile(summary: string, timestamp: number) {
-        // 保存先フォルダ: VoiceSummaries
-        const folderName = 'VoiceSummaries';
-        if (!this.app.vault.getAbstractFileByPath(folderName)) {
-            await this.app.vault.createFolder(folderName);
+        const { rootFolder, useDailyNote, dailyNoteDateFormat, messageTemplate } = this.plugin.settings;
+
+        // 1. Ensure Root Folder Exists
+        const folderPath = rootFolder || 'VoiceSummaries';
+        if (!this.app.vault.getAbstractFileByPath(folderPath)) {
+            await this.app.vault.createFolder(folderPath);
         }
 
         const date = moment.unix(timestamp);
 
-        // テンプレートが利用可能な場合はコンテンツを準備
-        let finalContent = `\n\n---\n\n${summary}`;
-        let filename = `${folderName}/${date.format('YYYY-MM-DD-HHmm')}.md`;
-        let isNewFile = true;
+        // 2. Prepare Content using Template
+        // Replace newline characters explicitly if they are escaped in the settings string
+        const template = messageTemplate.replace(/\\n/g, '\n');
+        
+        const formattedDate = date.format('YYYY-MM-DD');
+        const formattedTime = date.format('HH:mm');
+        const formattedDateTime = date.format('YYYY-MM-DD HH:mm');
 
-        const templatePath = this.plugin.settings.templatePath;
-        if (templatePath) {
-            const templateFile = this.app.vault.getAbstractFileByPath(templatePath);
-            if (templateFile instanceof TFile) {
-                const templateContent = await this.app.vault.read(templateFile);
-                finalContent = templateContent
-                    .replace(/{{date}}/g, date.format('YYYY-MM-DD'))
-                    .replace(/{{datetime}}/g, date.format('YYYY-MM-DD HH:mm'))
-                    .replace(/{{summary}}/g, summary);
+        const content = template
+            .replace(/{{summary}}/g, summary)
+            .replace(/{{date}}/g, formattedDate)
+            .replace(/{{time}}/g, formattedTime)
+            .replace(/{{datetime}}/g, formattedDateTime);
 
-                // テンプレートを使用する場合、ファイル名の戦略をどうするか？
-                // 現状は同じファイル名ロジックだが、ファイルが存在する場合は追記する。
-                // 通常テンプレートを使用する場合、新しいファイルを作成することを意味する。
-                // MVPとしては: コンテンツ作成にテンプレートを使用する。
-            }
+        // 3. Determine Filename
+        let filename: string;
+        if (useDailyNote) {
+             const dateFormat = dailyNoteDateFormat || 'YYYY-MM-DD';
+             filename = `${folderPath}/${date.format(dateFormat)}.md`;
+        } else {
+             // Individual Note mode: use precision to avoid collision
+             filename = `${folderPath}/${date.format('YYYY-MM-DD-HHmm-ss')}.md`;
         }
 
+        // 4. Save (Create or Append)
         let file = this.app.vault.getAbstractFileByPath(filename);
         if (file instanceof TFile) {
-            isNewFile = false;
-            // 追記
-            await this.app.vault.append(file, `\n\n---\n\n${summary}`); // 追記ロジックは現状シンプルに
+            // Append
+            await this.app.vault.append(file, content);
         } else {
-            // 新規ファイル
-            await this.app.vault.create(filename, isNewFile && templatePath ? finalContent : summary);
+            // Create New
+            await this.app.vault.create(filename, content);
         }
     }
 }

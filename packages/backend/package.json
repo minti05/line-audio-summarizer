@@ -8,9 +8,13 @@
         "start": "wrangler dev"
     },
     "devDependencies": {
-        "wrangler": "^3.0.0",
+        "@cloudflare/workers-types": "^4.0.0",
+        "drizzle-kit": "^0.31.8",
         "typescript": "^5.0.0",
-        "@cloudflare/workers-types": "^4.0.0"
+        "wrangler": "^3.0.0"
     },
-    "main": "src/index.ts"
+    "main": "src/index.ts",
+    "dependencies": {
+        "drizzle-orm": "^0.45.1"
+    }
 }

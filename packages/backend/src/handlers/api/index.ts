@@ -1,7 +1,10 @@
-import { Env } from '../types/env';
-import { upsertUserConfig, upsertPublicKey, getInboxItems, deleteInboxItem } from '../services/db';
+import { Env } from '../../types/env';
+import { createDb } from '../../db';
+import { upsertUserConfig, upsertPublicKey } from '../../repositories/user';
+import { getInboxItems, deleteInboxItem } from '../../repositories/inbox';
 
 export async function apiHandler(request: Request, env: Env): Promise<Response> {
+    const db = createDb(env.DB);
     const url = new URL(request.url);
 
     // CORS headers
@@ -25,11 +28,11 @@ export async function apiHandler(request: Request, env: Env): Promise<Response> 
             }
 
             // Save to DB (Upsert)
-            await upsertUserConfig(env.DB, {
-                line_user_id: lineUserId,
-                confirm_mode: 1,
-                prompt_mode: 'memo',
-                custom_prompt: null
+            await upsertUserConfig(db, {
+                lineUserId: lineUserId,
+                confirmMode: 1,
+                promptMode: 'memo',
+                customPrompt: null
             });
 
             // Map Vault ID -> Line User ID in KV
@@ -66,7 +69,7 @@ export async function apiHandler(request: Request, env: Env): Promise<Response> 
                 return new Response('認証エラー: Vault ID が連携されていません', { status: 401, headers: corsHeaders });
             }
 
-            await upsertPublicKey(env.DB, lineUserId, publicKeyPem);
+            await upsertPublicKey(db, lineUserId, publicKeyPem);
 
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -94,13 +97,13 @@ export async function apiHandler(request: Request, env: Env): Promise<Response> 
         }
 
         try {
-            const items = await getInboxItems(env.DB, lineUserId);
+            const items = await getInboxItems(db, lineUserId);
 
             // Delete items after fetching (ensure at-most-once delivery roughly)
             // Ideally we should wait for ACK, but for Alpha simple polling is fine.
             // Client should persist immediately.
             for (const item of items) {
-                await deleteInboxItem(env.DB, item.id);
+                await deleteInboxItem(db, item.id);
             }
 
             return new Response(JSON.stringify({ messages: items }), {

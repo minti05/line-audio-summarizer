@@ -7,13 +7,26 @@ import { SyncManager } from './sync';
 interface LineAudioSummarizerSettings {
 	lineUserId: string;
 	vaultId: string;
-	templatePath: string;
+	rootFolder: string;
+	useDailyNote: boolean;
+	dailyNoteDateFormat: string;
+	messageTemplate: string;
+	// Auto Sync
+	autoSync: boolean;
+	syncInterval: number;
+	syncOnStartup: boolean;
 }
 
 const DEFAULT_SETTINGS: LineAudioSummarizerSettings = {
 	lineUserId: '',
 	vaultId: '',
-	templatePath: ''
+	rootFolder: 'VoiceSummaries',
+	useDailyNote: true,
+	dailyNoteDateFormat: 'YYYY-MM-DD',
+	messageTemplate: '\\n## {{time}}\\n{{summary}}',
+	autoSync: false,
+	syncInterval: 1,
+	syncOnStartup: false
 }
 
 export default class LineAudioSummarizerPlugin extends Plugin {
@@ -21,6 +34,7 @@ export default class LineAudioSummarizerPlugin extends Plugin {
 	cryptoManager: CryptoManager;
 	apiClient: ApiClient;
 	syncManager: SyncManager;
+	syncIntervalId: number | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -41,14 +55,39 @@ export default class LineAudioSummarizerPlugin extends Plugin {
 
 		// 設定タブを追加
 		this.addSettingTab(new LineAudioSummarizerSettingTab(this.app, this));
+
+		// Auto Sync Initialization
+		if (this.settings.syncOnStartup) {
+			void this.syncManager.syncMessages();
+		}
+		this.configureAutoSync();
 	}
 
 	onunload() {
+		if (this.syncIntervalId) {
+			window.clearInterval(this.syncIntervalId);
+		}
+	}
 
+	configureAutoSync() {
+		if (this.syncIntervalId) {
+			window.clearInterval(this.syncIntervalId);
+			this.syncIntervalId = null;
+		}
+
+		if (this.settings.autoSync) {
+			const hours = this.settings.syncInterval;
+			if (hours > 0) {
+				this.syncIntervalId = window.setInterval(() => {
+					void this.syncManager.syncMessages();
+				}, hours * 60 * 60 * 1000);
+				this.registerInterval(this.syncIntervalId);
+			}
+		}
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData()) as LineAudioSummarizerSettings;
 		if (!this.settings.vaultId) {
 			this.settings.vaultId = crypto.randomUUID();
 			await this.saveSettings();

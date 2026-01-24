@@ -18,7 +18,7 @@ function openDB(): Promise<IDBDatabase> {
             }
         };
         request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => reject(request.error || new Error('Unknown IndexedDB error'));
     });
 }
 
@@ -29,7 +29,7 @@ export async function getStoredKeyPair(): Promise<CryptoKeyPair | null> {
         const store = transaction.objectStore(STORE_NAME);
         const request = store.get(KEY_PAIR_ID);
         request.onsuccess = () => resolve(request.result as CryptoKeyPair || null);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => reject(request.error || new Error('Unknown IndexedDB error'));
     });
 }
 
@@ -40,7 +40,7 @@ async function storeKeyPair(keyPair: CryptoKeyPair): Promise<void> {
         const store = transaction.objectStore(STORE_NAME);
         const request = store.put(keyPair, KEY_PAIR_ID);
         request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        request.onerror = () => reject(request.error || new Error('Unknown IndexedDB error'));
     });
 }
 
