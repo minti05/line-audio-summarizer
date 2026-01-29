@@ -4,7 +4,7 @@
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "Summarize audio notes from LINE.",
-	"author": "User",
-	"authorUrl": "https://github.com/user/line-audio-summarizer",
+	"author": "minti05",
+	"authorUrl": "https://github.com/minti05",
 	"isDesktopOnly": false
 }
